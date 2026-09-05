@@ -73,8 +73,8 @@ import com.example.ui.theme.TextSecondary
 
 @Composable
 fun LoginScreen(viewModel: KolabViewModel) {
-    var email by remember { mutableStateOf("studio@kolab.com") }
-    var password by remember { mutableStateOf("••••••••") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var visible by remember { mutableStateOf(false) }
 
