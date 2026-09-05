@@ -38,7 +38,7 @@ class TokenAuthenticator(
     private val refreshLock = Any()
     private val inflight = AtomicReference<CompletableDeferred<Boolean>?>(null)
 
-    override fun authenticate(route: okhttp3.Route?, response: Response): Response? {
+    override fun authenticate(route: okhttp3.Route?, response: Response): Request? {
         if (response.request.header("Authorization") == null) return null
         if (response.request.url.encodedPath.endsWith("/auth/refresh")) return null
         if (response.request.header("X-Retry") == "true") {

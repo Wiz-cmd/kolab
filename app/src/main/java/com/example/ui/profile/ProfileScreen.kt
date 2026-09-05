@@ -280,7 +280,6 @@ fun ProfileScreen(
             )
         }
     }
-}
 
 @Composable
 private fun MyStudioView(

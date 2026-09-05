@@ -54,8 +54,9 @@ fun ChatScreen(
                                 color = MaterialTheme.colorScheme.error
                             )
                         } else if (state.securityNote != null) {
+                            val note = state.securityNote
                             Text(
-                                text = state.securityNote,
+                                text = note,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (state.isE2EE) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
