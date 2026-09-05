@@ -8,6 +8,14 @@ on:
   push:
     branches: [main, master]
   workflow_dispatch:
+    inputs:
+      base_url:
+        description: >-
+          Backend base URL baked into the APK (e.g.
+          http://192.168.1.10:3000/api/ for a physical phone on Wi-Fi,
+          or leave default http://10.0.2.2:3000/api/ for the emulator).
+        required: true
+        default: "http://10.0.2.2:3000/api/"
 
 permissions:
   contents: read
@@ -20,7 +28,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -32,7 +40,42 @@ jobs:
         run: |
           sdkmanager --install "platforms;android-36" "build-tools;36.0.0" || true
 
+      - name: Allow cleartext HTTP to the selected backend host
+        run: |
+          python3 - "${{ inputs.base_url }}" <<'EOF'
+          import sys
+          from urllib.parse import urlsplit
+
+          raw = sys.argv[1]
+          host = urlsplit(raw).hostname if raw else None
+          if not host:
+              print("no custom host; leaving network security config untouched")
+              raise SystemExit(0)
+
+          domains = {"10.0.2.2", "localhost", "127.0.0.1", host}
+          lines = [
+              f'        <domain includeSubdomains="false">{d}</domain>'
+              for d in sorted(domains)
+          ]
+          xml = (
+              '<?xml version="1.0" encoding="utf-8"?>\n'
+              '<network-security-config>\n'
+              '    <base-config cleartextTrafficPermitted="false" />\n'
+              '    <domain-config cleartextTrafficPermitted="true">\n'
+              + "\n".join(lines)
+              + '\n'
+              '    </domain-config>\n'
+              '</network-security-config>\n'
+          )
+          path = "app/src/main/res/xml/network_security_config.xml"
+          with open(path, "w") as f:
+              f.write(xml)
+          print("network_security_config.xml updated for host:", host)
+          EOF
+
       - name: Build debug APK
+        env:
+          KOLAB_BASE_URL: ${{ inputs.base_url }}
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
