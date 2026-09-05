@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,6 +44,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -77,6 +79,7 @@ fun LoginScreen(viewModel: KolabViewModel) {
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var visible by remember { mutableStateOf(false) }
+    val isLoggingIn by viewModel.isLoggingIn.collectAsState()
 
     LaunchedEffect(Unit) {
         visible = true
@@ -253,18 +256,29 @@ fun LoginScreen(viewModel: KolabViewModel) {
                                 .fillMaxWidth()
                                 .height(52.dp)
                                 .testTag("sign_in_button"),
+                            enabled = !isLoggingIn,
                             shape = RoundedCornerShape(14.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = PureWhite,
-                                contentColor = PureBlack
+                                contentColor = PureBlack,
+                                disabledContainerColor = PureWhite.copy(alpha = 0.6f),
+                                disabledContentColor = PureBlack
                             )
                         ) {
-                            Text(
-                                text = "Sign In",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PureBlack
-                            )
+                            if (isLoggingIn) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(22.dp),
+                                    color = PureBlack,
+                                    strokeWidth = 2.5.dp
+                                )
+                            } else {
+                                Text(
+                                    text = "Sign In",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PureBlack
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(20.dp))

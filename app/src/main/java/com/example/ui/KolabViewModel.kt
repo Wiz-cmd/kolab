@@ -76,6 +76,9 @@ class KolabViewModel(
     private val _currentUserName = MutableStateFlow(repository.getUserName().ifBlank { "Zanele Ndlovu" })
     val currentUserName: StateFlow<String> = _currentUserName.asStateFlow()
 
+    private val _isLoggingIn = MutableStateFlow(false)
+    val isLoggingIn: StateFlow<Boolean> = _isLoggingIn.asStateFlow()
+
     // Navigation State
     private val _currentTab = MutableStateFlow(NavigationTab.HOME)
     val currentTab: StateFlow<NavigationTab> = _currentTab.asStateFlow()
@@ -185,46 +188,58 @@ class KolabViewModel(
     }
 
     fun login(email: String, pass: String) {
+        if (_isLoggingIn.value) return
         if (email.isBlank() || pass.isBlank()) {
             showNotification("Please enter your email and password")
             return
         }
+        _isLoggingIn.value = true
         viewModelScope.launch {
-            repository.login(email, pass)
-                .onSuccess { user ->
-                    _currentUserName.value = user.name.ifBlank { "Kolab Creator" }
-                    _currentUserEmail.value = user.email
-                    _authStep.value = AuthStep.AUTHENTICATED
-                    loadHomeData()
-                    showNotification("Welcome back to Kolab")
-                }
-                .onFailure { e ->
-                    val msg = when {
-                        e.message.isNullOrBlank() -> "Unable to sign in. Check your connection and try again."
-                        e.message.orEmpty().contains("credentials", ignoreCase = true) -> "Incorrect email or password"
-                        else -> e.message!!
+            try {
+                repository.login(email, pass)
+                    .onSuccess { user ->
+                        _currentUserName.value = user.name.ifBlank { "Kolab Creator" }
+                        _currentUserEmail.value = user.email
+                        _authStep.value = AuthStep.AUTHENTICATED
+                        loadHomeData()
+                        showNotification("Welcome back to Kolab")
                     }
-                    showNotification(msg)
-                }
+                    .onFailure { e ->
+                        val msg = when {
+                            e.message.isNullOrBlank() -> "Unable to sign in. Check your connection and try again."
+                            e.message.orEmpty().contains("credentials", ignoreCase = true) -> "Incorrect email or password"
+                            else -> e.message!!
+                        }
+                        showNotification(msg)
+                    }
+            } finally {
+                _isLoggingIn.value = false
+            }
         }
     }
 
     fun signUp(name: String, email: String, pass: String) {
+        if (_isLoggingIn.value) return
         if (email.isBlank() || pass.isBlank()) {
             showNotification("Please fill in all the details")
             return
         }
+        _isLoggingIn.value = true
         viewModelScope.launch {
-            repository.register(name.ifBlank { "Kolab Creator" }, email, pass)
-                .onSuccess { user ->
-                    _currentUserName.value = user.name.ifBlank { name.ifBlank { "Kolab Creator" } }
-                    _currentUserEmail.value = user.email
-                    _authStep.value = AuthStep.ACCOUNT_CREATED_SUCCESS
-                    loadHomeData()
-                }
-                .onFailure { e ->
-                    showNotification(e.message ?: "Unable to create your account")
-                }
+            try {
+                repository.register(name.ifBlank { "Kolab Creator" }, email, pass)
+                    .onSuccess { user ->
+                        _currentUserName.value = user.name.ifBlank { name.ifBlank { "Kolab Creator" } }
+                        _currentUserEmail.value = user.email
+                        _authStep.value = AuthStep.ACCOUNT_CREATED_SUCCESS
+                        loadHomeData()
+                    }
+                    .onFailure { e ->
+                        showNotification(e.message ?: "Unable to create your account")
+                    }
+            } finally {
+                _isLoggingIn.value = false
+            }
         }
     }
 
