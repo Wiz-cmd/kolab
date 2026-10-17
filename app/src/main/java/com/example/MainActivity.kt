@@ -94,7 +94,6 @@ import com.example.ui.theme.PureWhite
 import com.example.ui.theme.SurfaceContainerHigh
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.TextSecondary
 import com.kolab.ui.chat.ChatScreen
 import com.kolab.ui.chat.ChatViewModel
 import com.kolab.ui.chat.ChatViewModelFactory

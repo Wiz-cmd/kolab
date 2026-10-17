@@ -31,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -261,6 +262,49 @@ fun LoginScreen(viewModel: KolabViewModel) {
                             height = 52.dp,
                             shape = RoundedCornerShape(14.dp),
                             fontSize = 15
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Explore demo — drop straight into the offline sample session
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color.Transparent)
+                                .border(1.dp, DividerBorder, RoundedCornerShape(14.dp))
+                                .clickable { viewModel.enterDemoMode() }
+                                .testTag("explore_demo_button"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = null,
+                                    tint = PureWhite,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Explore the demo",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = PureWhite
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Browse sample creators & hotspots — no account needed",
+                            fontSize = 11.sp,
+                            color = TextSecondary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
                         )
 
                         Spacer(modifier = Modifier.height(20.dp))

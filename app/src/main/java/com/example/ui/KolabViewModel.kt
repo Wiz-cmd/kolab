@@ -79,6 +79,9 @@ class KolabViewModel(
     private val _isLoggingIn = MutableStateFlow(false)
     val isLoggingIn: StateFlow<Boolean> = _isLoggingIn.asStateFlow()
 
+    /** True while the app is running in the offline demo session. */
+    val isDemoMode: StateFlow<Boolean> = repository.demoMode
+
     // Navigation State
     private val _currentTab = MutableStateFlow(NavigationTab.HOME)
     val currentTab: StateFlow<NavigationTab> = _currentTab.asStateFlow()
@@ -197,6 +200,16 @@ class KolabViewModel(
         _authStep.value = step
     }
 
+    /** Drops straight into the fully-local demo session (no backend required). */
+    fun enterDemoMode() {
+        if (_isLoggingIn.value) return
+        repository.enterDemoSession(_currentUserName.value, _currentUserEmail.value)
+        _currentUserName.value = repository.getUserName().ifBlank { "Zanele Ndlovu" }
+        _currentUserEmail.value = repository.getUserEmail().ifBlank { "studio@kolab.com" }
+        _authStep.value = AuthStep.AUTHENTICATED
+        showNotification("Exploring Kolab in offline demo mode")
+    }
+
     fun login(email: String, pass: String) {
         if (_isLoggingIn.value) return
         if (email.isBlank() || pass.isBlank()) {
@@ -212,7 +225,10 @@ class KolabViewModel(
                         _currentUserEmail.value = user.email
                         _authStep.value = AuthStep.AUTHENTICATED
                         loadHomeData()
-                        showNotification("Welcome back to Kolab")
+                        showNotification(
+                            if (repository.isDemoMode()) "Backend offline — exploring in demo mode"
+                            else "Welcome back to Kolab"
+                        )
                     }
                     .onFailure { e ->
                         val msg = when {

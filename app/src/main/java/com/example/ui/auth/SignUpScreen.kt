@@ -375,6 +375,28 @@ fun SignUpScreen(viewModel: KolabViewModel) {
                     )
                 }
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Just browsing? ",
+                        fontSize = 13.sp,
+                        color = TextSecondary
+                    )
+                    Text(
+                        text = "Explore the demo",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PureWhite,
+                        modifier = Modifier
+                            .clickable { viewModel.enterDemoMode() }
+                            .testTag("signup_explore_demo_button")
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(20.dp))
             }
         }

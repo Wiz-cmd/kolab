@@ -12,8 +12,10 @@ plugins {
 // Kolab NestJS backend base URL. Defaults to the Android emulator's view of
 // the host machine. Override with: ./gradlew assembleDebug
 //   -PKOLAB_BASE_URL=http://192.168.x.x:3000/api/   (physical device)
+//   (or set the KOLAB_BASE_URL environment variable)
 val kolabBaseUrl = providers
-  .environmentVariable("KOLAB_BASE_URL")
+  .gradleProperty("KOLAB_BASE_URL")
+  .orElse(providers.environmentVariable("KOLAB_BASE_URL"))
   .getOrElse("http://10.0.2.2:3000/api/")
 
 android {

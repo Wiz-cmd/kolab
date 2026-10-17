@@ -27,6 +27,10 @@ class TokenManager(context: Context) {
         private const val KEY_USER_ROLE = "user_role"
         private const val KEY_USER_AVATAR = "user_avatar"
         private const val KEY_USER_PUBLIC_KEY = "user_public_key"
+        private const val KEY_DEMO_MODE = "demo_mode"
+
+        private const val DEMO_ACCESS_TOKEN = "demo.access.token"
+        private const val DEMO_REFRESH_TOKEN = "demo.refresh.token"
     }
 
     @Volatile
@@ -57,6 +61,25 @@ class TokenManager(context: Context) {
     fun getUserRole(): String? = prefs.getString(KEY_USER_ROLE, null)
     fun getUserAvatar(): String? = prefs.getString(KEY_USER_AVATAR, null)
 
+    // ── Offline demo session ────────────────────────────────────────────
+    // A demo session stores a synthetic refresh token + profile so the app's
+    // normal "am I logged in?" checks and session restore keep working with
+    // no backend at all.
+
+    fun isDemoMode(): Boolean = prefs.getBoolean(KEY_DEMO_MODE, false)
+
+    fun enterDemoMode(id: String, name: String, email: String, role: String = "CREATOR") {
+        accessTokenMemory = DEMO_ACCESS_TOKEN
+        prefs.edit()
+            .putBoolean(KEY_DEMO_MODE, true)
+            .putString(KEY_REFRESH_TOKEN, DEMO_REFRESH_TOKEN)
+            .putString(KEY_USER_ID, id)
+            .putString(KEY_USER_NAME, name)
+            .putString(KEY_USER_EMAIL, email)
+            .putString(KEY_USER_ROLE, role)
+            .apply()
+    }
+
     /** E2EE chat public key (SPKI base64) last published to the backend. */
     fun getPublicKey(): String? = prefs.getString(KEY_USER_PUBLIC_KEY, null)
 
@@ -66,7 +89,10 @@ class TokenManager(context: Context) {
 
     fun clearTokens() {
         accessTokenMemory = null
-        prefs.edit().remove(KEY_REFRESH_TOKEN).apply()
+        prefs.edit()
+            .remove(KEY_REFRESH_TOKEN)
+            .remove(KEY_DEMO_MODE)
+            .apply()
     }
 
     fun clearAll() {
