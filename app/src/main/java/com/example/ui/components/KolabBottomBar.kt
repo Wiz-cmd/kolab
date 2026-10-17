@@ -163,7 +163,6 @@ private fun CenterCreateNavItem(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
     val scale by animateFloatAsState(
         targetValue = if (isSelected) 1.08f else 1.0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
@@ -173,11 +172,7 @@ private fun CenterCreateNavItem(
     Box(
         modifier = Modifier
             .scale(scale)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
+            .kolabClickable(pressedScale = 0.9f, onClick = onClick)
             .testTag("nav_tab_create"),
         contentAlignment = Alignment.Center
     ) {
@@ -230,7 +225,6 @@ private fun BottomNavItem(
     onClick: () -> Unit,
     testTag: String
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
     val iconTint by animateColorAsState(
         targetValue = if (isSelected) PureWhite else TextSecondary,
         animationSpec = tween(250),
@@ -245,11 +239,7 @@ private fun BottomNavItem(
     Column(
         modifier = Modifier
             .scale(scale)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
+            .kolabClickable(pressedScale = 0.9f, onClick = onClick)
             .padding(vertical = 4.dp, horizontal = 8.dp)
             .testTag(testTag),
         horizontalAlignment = Alignment.CenterHorizontally,

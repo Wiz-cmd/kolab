@@ -38,7 +38,6 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -62,11 +61,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import com.example.data.CreativeProfile
 import com.example.data.FeedPost
 import com.example.ui.KolabViewModel
 import com.example.ui.components.CollabRequestBottomSheet
+import com.example.ui.components.KolabCreativeCardSkeleton
+import com.example.ui.components.KolabSearchRowSkeleton
+import com.example.ui.components.ShimmerBlock
+import com.example.ui.components.kolabClickable
 import com.example.ui.theme.CardBackground
 import com.example.ui.theme.DarkSurface
 import com.example.ui.theme.DividerBorder
@@ -83,6 +86,7 @@ fun DiscoverScreen(viewModel: KolabViewModel) {
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedCategory by viewModel.selectedCreativeCategory.collectAsState()
     val creatives by viewModel.filteredCreatives.collectAsState()
+    val creativesLoading by viewModel.creativesLoading.collectAsState()
     val targetCreative by viewModel.collabTargetCreative.collectAsState()
     val searchResultsState by viewModel.searchResults.collectAsState()
     val followingIds by viewModel.followingIds.collectAsState()
@@ -287,14 +291,18 @@ fun DiscoverScreen(viewModel: KolabViewModel) {
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        items(creatives, key = { it.id }) { creative ->
-                            CreativeCard(
-                                creative = creative,
-                                isFollowing = followingIds.contains(creative.id),
-                                onFollowToggle = { viewModel.toggleFollow(creative.id, creative.name) },
-                                onCardClick = { detailCreative = creative },
-                                onRequestCollab = { viewModel.openCollabRequest(creative) }
-                            )
+                        if (creativesLoading && creatives.isEmpty()) {
+                            items(4) { KolabCreativeCardSkeleton() }
+                        } else {
+                            items(creatives, key = { it.id }) { creative ->
+                                CreativeCard(
+                                    creative = creative,
+                                    isFollowing = followingIds.contains(creative.id),
+                                    onFollowToggle = { viewModel.toggleFollow(creative.id, creative.name) },
+                                    onCardClick = { detailCreative = creative },
+                                    onRequestCollab = { viewModel.openCollabRequest(creative) }
+                                )
+                            }
                         }
 
                         item {
@@ -344,7 +352,7 @@ private fun CreativeCard(
             .clip(RoundedCornerShape(20.dp))
             .background(CardBackground)
             .border(1.dp, DividerBorder, RoundedCornerShape(20.dp))
-            .clickable(onClick = onCardClick)
+            .kolabClickable(onClick = onCardClick)
             .padding(16.dp)
             .testTag("creative_card_${creative.id}")
     ) {
@@ -353,14 +361,20 @@ private fun CreativeCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                AsyncImage(
+                SubcomposeAsyncImage(
                     model = creative.imageUrl,
                     contentDescription = creative.name,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(72.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .border(1.dp, DividerBorder, RoundedCornerShape(16.dp))
+                        .border(1.dp, DividerBorder, RoundedCornerShape(16.dp)),
+                    loading = {
+                        ShimmerBlock(
+                            modifier = Modifier.fillMaxSize(),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                    }
                 )
 
                 Spacer(modifier = Modifier.width(14.dp))
@@ -509,14 +523,20 @@ private fun CreativeDetailBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    AsyncImage(
+                    SubcomposeAsyncImage(
                         model = creative.imageUrl,
                         contentDescription = creative.name,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(56.dp)
                             .clip(CircleShape)
-                            .border(1.dp, DividerBorder, CircleShape)
+                            .border(1.dp, DividerBorder, CircleShape),
+                        loading = {
+                            ShimmerBlock(
+                                modifier = Modifier.fillMaxSize(),
+                                shape = CircleShape
+                            )
+                        }
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
@@ -735,20 +755,8 @@ private fun SearchResultsSection(
         }
 
         if (results.isLoading) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        color = PureWhite,
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-            }
+            // Skeleton rows instead of a bare spinner while results stream in.
+            items(4) { KolabSearchRowSkeleton() }
         } else {
             if (results.users.isNotEmpty()) {
                 item {
@@ -826,14 +834,20 @@ private fun SearchResultUserRow(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AsyncImage(
+            SubcomposeAsyncImage(
                 model = creative.imageUrl,
                 contentDescription = creative.name,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(52.dp)
                     .clip(CircleShape)
-                    .border(1.dp, DividerBorder, CircleShape)
+                    .border(1.dp, DividerBorder, CircleShape),
+                loading = {
+                    ShimmerBlock(
+                        modifier = Modifier.fillMaxSize(),
+                        shape = CircleShape
+                    )
+                }
             )
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -899,14 +913,20 @@ private fun SearchPostCard(post: FeedPost) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (post.imageUrl.isNotBlank()) {
-                AsyncImage(
+                SubcomposeAsyncImage(
                     model = post.imageUrl,
                     contentDescription = post.author,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(56.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .border(1.dp, DividerBorder, RoundedCornerShape(12.dp))
+                        .border(1.dp, DividerBorder, RoundedCornerShape(12.dp)),
+                    loading = {
+                        ShimmerBlock(
+                            modifier = Modifier.fillMaxSize(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
                 )
                 Spacer(modifier = Modifier.width(12.dp))
             }

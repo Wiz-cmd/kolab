@@ -234,7 +234,8 @@ fun CollabRequestBottomSheet(
             Spacer(modifier = Modifier.height(24.dp))
 
             // Submit Button
-            Button(
+            KolabPrimaryButton(
+                text = "Send Collaboration Request",
                 onClick = {
                     onSubmit(
                         CollabRequest(
@@ -249,21 +250,11 @@ fun CollabRequestBottomSheet(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
                     .testTag("send_collab_request_button"),
+                height = 52.dp,
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PureWhite,
-                    contentColor = PureBlack
-                )
-            ) {
-                Text(
-                    text = "Send Collaboration Request",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PureBlack
-                )
-            }
+                fontSize = 15
+            )
 
             Spacer(modifier = Modifier.height(28.dp))
         }

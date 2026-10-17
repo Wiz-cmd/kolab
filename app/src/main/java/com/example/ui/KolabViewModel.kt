@@ -117,6 +117,10 @@ class KolabViewModel(
     private val _securityBusy = MutableStateFlow(false)
     val securityBusy: StateFlow<Boolean> = _securityBusy.asStateFlow()
 
+    // Wallet
+    private val _withdrawBusy = MutableStateFlow(false)
+    val withdrawBusy: StateFlow<Boolean> = _withdrawBusy.asStateFlow()
+
     // Dialogs & Sheets
     private val _collabTargetCreative = MutableStateFlow<CreativeProfile?>(null)
     val collabTargetCreative: StateFlow<CreativeProfile?> = _collabTargetCreative.asStateFlow()
@@ -138,6 +142,12 @@ class KolabViewModel(
     val availableBalance: StateFlow<Double> = repository.availableBalance
     val userPortfolio: StateFlow<List<String>> = repository.userPortfolio
     val currentLocation: StateFlow<String> = repository.currentLocation
+
+    // Loading state for the shimmer skeletons
+    val feedLoading: StateFlow<Boolean> = repository.feedLoading
+    val creativesLoading: StateFlow<Boolean> = repository.creativesLoading
+    val hotspotsLoading: StateFlow<Boolean> = repository.hotspotsLoading
+    val portfolioLoading: StateFlow<Boolean> = repository.portfolioLoading
 
     // Filtered Creatives
     val filteredCreatives: StateFlow<List<CreativeProfile>> = combine(
@@ -492,13 +502,19 @@ class KolabViewModel(
     }
 
     fun withdrawFunds(amount: Double) {
+        if (_withdrawBusy.value) return
+        _withdrawBusy.value = true
         viewModelScope.launch {
-            val success = repository.withdrawFunds(amount)
-            _showWithdrawDialog.value = false
-            if (success) {
-                showNotification("R${String.format(Locale.US, "%,.2f", amount)} transferred to designated bank account")
-            } else {
-                showNotification("Withdrawal failed. Check your balance and try again.")
+            try {
+                val success = repository.withdrawFunds(amount)
+                _showWithdrawDialog.value = false
+                if (success) {
+                    showNotification("R${String.format(Locale.US, "%,.2f", amount)} transferred to designated bank account")
+                } else {
+                    showNotification("Withdrawal failed. Check your balance and try again.")
+                }
+            } finally {
+                _withdrawBusy.value = false
             }
         }
     }

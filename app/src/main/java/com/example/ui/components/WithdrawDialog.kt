@@ -28,6 +28,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,6 +58,7 @@ fun WithdrawDialog(
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val withdrawBusy by viewModel.withdrawBusy.collectAsState()
 
     var amountText by remember { mutableStateOf(balance.toInt().toString()) }
     var selectedBank by remember { mutableStateOf("FNB (First National Bank)") }
@@ -205,28 +207,20 @@ fun WithdrawDialog(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Button(
+            KolabPrimaryButton(
+                text = "Confirm Payout Transfer",
                 onClick = {
                     val amount = amountText.toDoubleOrNull() ?: 0.0
                     viewModel.withdrawFunds(amount)
                 },
+                loading = withdrawBusy,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
                     .testTag("confirm_withdraw_button"),
+                height = 52.dp,
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PureWhite,
-                    contentColor = PureBlack
-                )
-            ) {
-                Text(
-                    text = "Confirm Payout Transfer",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PureBlack
-                )
-            }
+                fontSize = 15
+            )
 
             Spacer(modifier = Modifier.height(28.dp))
         }

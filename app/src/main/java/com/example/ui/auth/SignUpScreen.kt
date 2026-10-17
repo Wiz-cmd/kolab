@@ -40,6 +40,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.AuthStep
 import com.example.ui.KolabViewModel
+import com.example.ui.components.KolabPrimaryButton
 import com.example.ui.theme.CardBackground
 import com.example.ui.theme.DividerBorder
 import com.example.ui.theme.PureBlack
@@ -73,6 +75,7 @@ fun SignUpScreen(viewModel: KolabViewModel) {
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var visible by remember { mutableStateOf(false) }
+    val isLoggingIn by viewModel.isLoggingIn.collectAsState()
 
     LaunchedEffect(Unit) {
         visible = true
@@ -269,25 +272,17 @@ fun SignUpScreen(viewModel: KolabViewModel) {
                         Spacer(modifier = Modifier.height(24.dp))
 
                         // Create Account Button
-                        Button(
+                        KolabPrimaryButton(
+                            text = "Create Account",
                             onClick = { viewModel.signUp(fullName, email, password) },
+                            loading = isLoggingIn,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(52.dp)
                                 .testTag("create_account_button"),
+                            height = 52.dp,
                             shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = PureWhite,
-                                contentColor = PureBlack
-                            )
-                        ) {
-                            Text(
-                                text = "Create Account",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PureBlack
-                            )
-                        }
+                            fontSize = 15
+                        )
 
                         Spacer(modifier = Modifier.height(18.dp))
 

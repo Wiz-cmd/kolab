@@ -24,14 +24,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddBox
 import androidx.compose.material.icons.filled.Explore
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Handshake
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -54,13 +50,18 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import com.example.data.FeedMode
 import com.example.data.FeedPost
 import com.example.ui.KolabViewModel
 import com.example.ui.NavigationTab
+import com.example.ui.components.KolabFeedPostSkeleton
+import com.example.ui.components.KolabLikeButton
+import com.example.ui.components.KolabPrimaryButton
 import com.example.ui.components.KolabTopBar
 import com.example.ui.components.LocationPickerDialog
+import com.example.ui.components.ShimmerBlock
+import com.example.ui.components.kolabClickable
 import com.example.ui.theme.CardBackground
 import com.example.ui.theme.DarkSurface
 import com.example.ui.theme.DividerBorder
@@ -74,6 +75,7 @@ import com.example.ui.theme.TextSecondary
 @Composable
 fun HomeScreen(viewModel: KolabViewModel) {
     val feedPosts by viewModel.feedPosts.collectAsState()
+    val feedLoading by viewModel.feedLoading.collectAsState()
     val currentLocation by viewModel.currentLocation.collectAsState()
     val feedMode by viewModel.feedMode.collectAsState()
     var showLocationPicker by remember { mutableStateOf(false) }
@@ -142,16 +144,20 @@ fun HomeScreen(viewModel: KolabViewModel) {
                     }
                 }
 
-                // Feed Post Cards
-                items(feedPosts, key = { it.id }) { post ->
-                    FeedPostCard(
-                        post = post,
-                        onLike = { viewModel.toggleLike(post.id) },
-                        onCollab = {
-                            viewModel.showNotification("Connected with ${post.author}. Collab pitch opened.")
-                            viewModel.openCreateSheet()
-                        }
-                    )
+                // Feed Post Cards — shimmer placeholders while the first page loads
+                if (feedLoading && feedPosts.isEmpty()) {
+                    items(3) { KolabFeedPostSkeleton() }
+                } else {
+                    items(feedPosts, key = { it.id }) { post ->
+                        FeedPostCard(
+                            post = post,
+                            onLike = { viewModel.toggleLike(post.id) },
+                            onCollab = {
+                                viewModel.showNotification("Connected with ${post.author}. Collab pitch opened.")
+                                viewModel.openCreateSheet()
+                            }
+                        )
+                    }
                 }
 
                 item {
@@ -298,7 +304,7 @@ private fun BentoCard(
             .clip(RoundedCornerShape(16.dp))
             .background(CardBackground)
             .border(1.dp, DividerBorder, RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
+            .kolabClickable(onClick = onClick)
             .padding(14.dp)
             .testTag(testTag)
     ) {
@@ -420,11 +426,17 @@ private fun FeedPostCard(
                     .fillMaxWidth()
                     .height(240.dp)
             ) {
-                AsyncImage(
+                SubcomposeAsyncImage(
                     model = post.imageUrl,
                     contentDescription = post.description,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    loading = {
+                        ShimmerBlock(
+                            modifier = Modifier.fillMaxSize(),
+                            shape = RoundedCornerShape(0.dp)
+                        )
+                    }
                 )
                 // Bottom subtle gradient
                 Box(
@@ -462,54 +474,22 @@ private fun FeedPostCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Likes
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .clickable(onClick = onLike)
-                            .padding(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (post.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = "Like",
-                            tint = if (post.isLiked) Color.Red else TextSecondary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "${post.likes}",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextPrimary
-                        )
-                    }
+                    // Likes — animated, optimistic
+                    KolabLikeButton(
+                        isLiked = post.isLiked,
+                        likes = post.likes,
+                        onToggle = onLike
+                    )
 
                     // Collab Action Button
-                    Button(
+                    KolabPrimaryButton(
+                        text = "Collab",
+                        icon = Icons.Default.Handshake,
                         onClick = onCollab,
+                        height = 38.dp,
                         shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PureWhite,
-                            contentColor = PureBlack
-                        ),
-                        modifier = Modifier.height(38.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Handshake,
-                                contentDescription = "Collab",
-                                tint = PureBlack,
-                                modifier = Modifier.size(15.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Collab",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PureBlack
-                            )
-                        }
-                    }
+                        fontSize = 13
+                    )
                 }
             }
         }

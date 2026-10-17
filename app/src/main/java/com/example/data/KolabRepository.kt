@@ -76,6 +76,17 @@ class KolabRepository(
     val userPortfolio: StateFlow<List<String>> = _userPortfolio.asStateFlow()
     val currentLocation: StateFlow<String> = _currentLocation.asStateFlow()
 
+    // ── Loading state (drives the shimmer skeletons) ────────────────────
+    private val _creativesLoading = MutableStateFlow(false)
+    private val _feedLoading = MutableStateFlow(false)
+    private val _hotspotsLoading = MutableStateFlow(false)
+    private val _portfolioLoading = MutableStateFlow(false)
+
+    val creativesLoading: StateFlow<Boolean> = _creativesLoading.asStateFlow()
+    val feedLoading: StateFlow<Boolean> = _feedLoading.asStateFlow()
+    val hotspotsLoading: StateFlow<Boolean> = _hotspotsLoading.asStateFlow()
+    val portfolioLoading: StateFlow<Boolean> = _portfolioLoading.asStateFlow()
+
     // ── Auth ────────────────────────────────────────────────────────────
 
     fun isLoggedIn(): Boolean = tokenManager.isLoggedIn()
@@ -156,27 +167,42 @@ class KolabRepository(
     }
 
     private suspend fun loadCreatives() {
-        when (val r = safeCall { api.listUsers(take = 50) }) {
-            is ApiResult.Success -> {
-                _creatives.value = r.data.data
-                    .filter { !it.role.equals("BRAND", ignoreCase = true) }
-                    .map { it.toCreative() }
+        _creativesLoading.value = true
+        try {
+            when (val r = safeCall { api.listUsers(take = 50) }) {
+                is ApiResult.Success -> {
+                    _creatives.value = r.data.data
+                        .filter { !it.role.equals("BRAND", ignoreCase = true) }
+                        .map { it.toCreative() }
+                }
+                else -> {}
             }
-            else -> {}
+        } finally {
+            _creativesLoading.value = false
         }
     }
 
     private suspend fun loadFeed() {
-        when (val r = safeCall { api.getFeed() }) {
-            is ApiResult.Success -> _feedPosts.value = r.data.data.map { it.toFeedPost() }
-            else -> {}
+        _feedLoading.value = true
+        try {
+            when (val r = safeCall { api.getFeed() }) {
+                is ApiResult.Success -> _feedPosts.value = r.data.data.map { it.toFeedPost() }
+                else -> {}
+            }
+        } finally {
+            _feedLoading.value = false
         }
     }
 
     private suspend fun loadHotspots() {
-        when (val r = safeCall { api.listHotspots() }) {
-            is ApiResult.Success -> _hotspots.value = r.data.data.map { it.toHotspot() }
-            else -> {}
+        _hotspotsLoading.value = true
+        try {
+            when (val r = safeCall { api.listHotspots() }) {
+                is ApiResult.Success -> _hotspots.value = r.data.data.map { it.toHotspot() }
+                else -> {}
+            }
+        } finally {
+            _hotspotsLoading.value = false
         }
     }
 
@@ -214,12 +240,17 @@ class KolabRepository(
     }
 
     private suspend fun loadPortfolio() {
-        when (val r = safeCall { api.listCollections() }) {
-            is ApiResult.Success -> {
-                val urls = r.data.flatMap { it.items }.map { it.url }.filter { it.isNotBlank() }
-                if (urls.isNotEmpty()) _userPortfolio.value = urls
+        _portfolioLoading.value = true
+        try {
+            when (val r = safeCall { api.listCollections() }) {
+                is ApiResult.Success -> {
+                    val urls = r.data.flatMap { it.items }.map { it.url }.filter { it.isNotBlank() }
+                    if (urls.isNotEmpty()) _userPortfolio.value = urls
+                }
+                else -> {}
             }
-            else -> {}
+        } finally {
+            _portfolioLoading.value = false
         }
     }
 
@@ -371,19 +402,24 @@ class KolabRepository(
     // ── Feed mode ───────────────────────────────────────────────────────
 
     suspend fun loadFeed(mode: FeedMode) {
-        when (mode) {
-            FeedMode.FOLLOWING -> {
-                when (val r = safeCall { api.getFeed() }) {
-                    is ApiResult.Success -> _feedPosts.value = r.data.data.map { it.toFeedPost() }
-                    else -> {}
+        _feedLoading.value = true
+        try {
+            when (mode) {
+                FeedMode.FOLLOWING -> {
+                    when (val r = safeCall { api.getFeed() }) {
+                        is ApiResult.Success -> _feedPosts.value = r.data.data.map { it.toFeedPost() }
+                        else -> {}
+                    }
+                }
+                FeedMode.FOR_YOU -> {
+                    when (val r = safeCall { api.getForYouFeed(take = 50) }) {
+                        is ApiResult.Success -> _feedPosts.value = r.data.data.map { it.toFeedPost() }
+                        else -> {}
+                    }
                 }
             }
-            FeedMode.FOR_YOU -> {
-                when (val r = safeCall { api.getForYouFeed(take = 50) }) {
-                    is ApiResult.Success -> _feedPosts.value = r.data.data.map { it.toFeedPost() }
-                    else -> {}
-                }
-            }
+        } finally {
+            _feedLoading.value = false
         }
     }
 

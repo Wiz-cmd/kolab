@@ -67,10 +67,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import com.example.data.ActiveDeal
 import com.example.ui.KolabViewModel
 import com.example.ui.ProfileSubTab
+import com.example.ui.components.KolabPortfolioGridSkeleton
+import com.example.ui.components.ShimmerBlock
 import com.example.ui.components.WithdrawDialog
+import com.example.ui.components.kolabClickable
 import com.example.ui.theme.CardBackground
 import com.example.ui.theme.DarkSurface
 import com.example.ui.theme.DividerBorder
@@ -93,6 +97,7 @@ fun ProfileScreen(
     val availableBalance by viewModel.availableBalance.collectAsState()
     val activeDeals by viewModel.activeDeals.collectAsState()
     val userPortfolio by viewModel.userPortfolio.collectAsState()
+    val portfolioLoading by viewModel.portfolioLoading.collectAsState()
     val showWithdrawDialog by viewModel.showWithdrawDialog.collectAsState()
     val userName by viewModel.currentUserName.collectAsState()
     var showSecurity by remember { mutableStateOf(false) }
@@ -255,6 +260,7 @@ fun ProfileScreen(
                         balance = availableBalance,
                         activeDeals = activeDeals,
                         portfolio = userPortfolio,
+                        portfolioLoading = portfolioLoading,
                         onWithdraw = { viewModel.openWithdrawDialog() },
                         onAddPortfolio = { viewModel.openCreateSheet() },
                         onSignOut = { viewModel.signOut() },
@@ -266,7 +272,8 @@ fun ProfileScreen(
                         userName = userName,
                         onBookNow = { viewModel.openCreateSheet() },
                         onMessage = { viewModel.showNotification("Chat session started with $userName") },
-                        portfolio = userPortfolio
+                        portfolio = userPortfolio,
+                        portfolioLoading = portfolioLoading
                     )
                 }
             }
@@ -287,6 +294,7 @@ private fun MyStudioView(
     balance: Double,
     activeDeals: List<ActiveDeal>,
     portfolio: List<String>,
+    portfolioLoading: Boolean,
     onWithdraw: () -> Unit,
     onAddPortfolio: () -> Unit,
     onSignOut: () -> Unit,
@@ -674,48 +682,58 @@ private fun MyStudioView(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 // 3-column Grid
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    portfolio.chunked(3).forEach { rowItems ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            rowItems.forEach { imgUrl ->
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .aspectRatio(1f)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(SurfaceContainerHigh)
-                                ) {
-                                    AsyncImage(
-                                        model = imgUrl,
-                                        contentDescription = "Portfolio item",
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                }
-                            }
-                            if (rowItems.size < 3) {
-                                repeat(3 - rowItems.size) {
+                if (portfolioLoading && portfolio.isEmpty()) {
+                    KolabPortfolioGridSkeleton(rows = 3)
+                } else {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        portfolio.chunked(3).forEach { rowItems ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                rowItems.forEach { imgUrl ->
                                     Box(
                                         modifier = Modifier
                                             .weight(1f)
                                             .aspectRatio(1f)
                                             .clip(RoundedCornerShape(12.dp))
                                             .background(SurfaceContainerHigh)
-                                            .clickable(onClick = onAddPortfolio),
-                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Add,
-                                            contentDescription = "Add image",
-                                            tint = TextSecondary,
-                                            modifier = Modifier.size(24.dp)
+                                        SubcomposeAsyncImage(
+                                            model = imgUrl,
+                                            contentDescription = "Portfolio item",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize(),
+                                            loading = {
+                                                ShimmerBlock(
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    shape = RoundedCornerShape(0.dp)
+                                                )
+                                            }
                                         )
+                                    }
+                                }
+                                if (rowItems.size < 3) {
+                                    repeat(3 - rowItems.size) {
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .aspectRatio(1f)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(SurfaceContainerHigh)
+                                                .kolabClickable(onClick = onAddPortfolio),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = "Add image",
+                                                tint = TextSecondary,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -770,7 +788,8 @@ private fun PublicProfileView(
     userName: String,
     onBookNow: () -> Unit,
     onMessage: () -> Unit,
-    portfolio: List<String>
+    portfolio: List<String>,
+    portfolioLoading: Boolean
 ) {
     LazyColumn(
         modifier = Modifier
@@ -1112,46 +1131,62 @@ private fun PublicProfileView(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    portfolio.take(2).forEach { img ->
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .aspectRatio(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(SurfaceContainerHigh)
-                        ) {
-                            AsyncImage(
-                                model = img,
-                                contentDescription = "Recent work",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
+                if (portfolioLoading && portfolio.isEmpty()) {
+                    KolabPortfolioGridSkeleton(rows = 2)
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        portfolio.take(2).forEach { img ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(SurfaceContainerHigh)
+                            ) {
+                                SubcomposeAsyncImage(
+                                    model = img,
+                                    contentDescription = "Recent work",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize(),
+                                    loading = {
+                                        ShimmerBlock(
+                                            modifier = Modifier.fillMaxSize(),
+                                            shape = RoundedCornerShape(0.dp)
+                                        )
+                                    }
+                                )
+                            }
                         }
                     }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    portfolio.drop(2).take(2).forEach { img ->
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .aspectRatio(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(SurfaceContainerHigh)
-                        ) {
-                            AsyncImage(
-                                model = img,
-                                contentDescription = "Recent work",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        portfolio.drop(2).take(2).forEach { img ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(SurfaceContainerHigh)
+                            ) {
+                                SubcomposeAsyncImage(
+                                    model = img,
+                                    contentDescription = "Recent work",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize(),
+                                    loading = {
+                                        ShimmerBlock(
+                                            modifier = Modifier.fillMaxSize(),
+                                            shape = RoundedCornerShape(0.dp)
+                                        )
+                                    }
+                                )
+                            }
                         }
                     }
                 }

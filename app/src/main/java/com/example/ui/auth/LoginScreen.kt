@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.AuthStep
 import com.example.ui.KolabViewModel
+import com.example.ui.components.KolabPrimaryButton
 import com.example.ui.theme.CardBackground
 import com.example.ui.theme.DividerBorder
 import com.example.ui.theme.PureBlack
@@ -250,36 +251,17 @@ fun LoginScreen(viewModel: KolabViewModel) {
                         Spacer(modifier = Modifier.height(24.dp))
 
                         // Sign In Primary Button
-                        Button(
+                        KolabPrimaryButton(
+                            text = "Sign In",
                             onClick = { viewModel.login(email, password) },
+                            loading = isLoggingIn,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(52.dp)
                                 .testTag("sign_in_button"),
-                            enabled = !isLoggingIn,
+                            height = 52.dp,
                             shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = PureWhite,
-                                contentColor = PureBlack,
-                                disabledContainerColor = PureWhite.copy(alpha = 0.6f),
-                                disabledContentColor = PureBlack
-                            )
-                        ) {
-                            if (isLoggingIn) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(22.dp),
-                                    color = PureBlack,
-                                    strokeWidth = 2.5.dp
-                                )
-                            } else {
-                                Text(
-                                    text = "Sign In",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PureBlack
-                                )
-                            }
-                        }
+                            fontSize = 15
+                        )
 
                         Spacer(modifier = Modifier.height(20.dp))
 

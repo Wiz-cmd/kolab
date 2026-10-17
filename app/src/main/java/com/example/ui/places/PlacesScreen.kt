@@ -1,5 +1,15 @@
 package com.example.ui.places
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -38,18 +48,21 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import com.example.data.Hotspot
 import com.example.data.LeaderboardItem
 import com.example.data.TrendDirection
@@ -57,6 +70,8 @@ import com.example.ui.KolabViewModel
 import com.example.ui.theme.CardBackground
 import com.example.ui.theme.DarkSurface
 import com.example.ui.theme.DividerBorder
+import com.example.ui.components.KolabHotspotCardSkeleton
+import com.example.ui.components.ShimmerBlock
 import com.example.ui.theme.PureBlack
 import com.example.ui.theme.PureWhite
 import com.example.ui.theme.StarGold
@@ -69,6 +84,7 @@ import com.example.ui.theme.TrendGreen
 @Composable
 fun PlacesScreen(viewModel: KolabViewModel) {
     val hotspots by viewModel.hotspots.collectAsState()
+    val hotspotsLoading by viewModel.hotspotsLoading.collectAsState()
     val leaderboard by viewModel.leaderboard.collectAsState()
     val selectedCategory by viewModel.selectedHotspotCategory.collectAsState()
     val isMapView by viewModel.isMapViewEnabled.collectAsState()
@@ -299,16 +315,20 @@ fun PlacesScreen(viewModel: KolabViewModel) {
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(hotspots, key = { it.id }) { spot ->
-                        HotspotCard(
-                            hotspot = spot,
-                            onCheckIn = { viewModel.toggleCheckIn(spot.id) }
-                        )
-                    }
+                    if (hotspotsLoading && hotspots.isEmpty()) {
+                        items(3) { KolabHotspotCardSkeleton() }
+                    } else {
+                        items(hotspots, key = { it.id }) { spot ->
+                            HotspotCard(
+                                hotspot = spot,
+                                onCheckIn = { viewModel.toggleCheckIn(spot.id) }
+                            )
+                        }
 
-                    // Provincial Leaderboard Section
-                    item {
-                        LeaderboardSection(leaderboard = leaderboard)
+                        // Provincial Leaderboard Section
+                        item {
+                            LeaderboardSection(leaderboard = leaderboard)
+                        }
                     }
 
                     item {
@@ -340,11 +360,17 @@ private fun HotspotCard(
                     .fillMaxWidth()
                     .height(180.dp)
             ) {
-                AsyncImage(
+                SubcomposeAsyncImage(
                     model = hotspot.imageUrl,
                     contentDescription = hotspot.name,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    loading = {
+                        ShimmerBlock(
+                            modifier = Modifier.fillMaxSize(),
+                            shape = RoundedCornerShape(0.dp)
+                        )
+                    }
                 )
 
                 // Rating overlay badge
@@ -408,27 +434,61 @@ private fun HotspotCard(
                         }
                     }
 
+                    // Check-in button — a small "stamp" response when it flips on
+                    val checkedIn = hotspot.isCheckedIn
+                    val checkPop = remember { Animatable(1f) }
+                    LaunchedEffect(checkedIn) {
+                        if (checkedIn) {
+                            checkPop.snapTo(0.85f)
+                            checkPop.animateTo(
+                                targetValue = 1f,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessLow
+                                )
+                            )
+                        }
+                    }
+                    val chipContainer by animateColorAsState(
+                        targetValue = if (checkedIn) SurfaceContainerHigh else PureWhite,
+                        animationSpec = tween(220),
+                        label = "checkInContainer"
+                    )
+                    val chipContent by animateColorAsState(
+                        targetValue = if (checkedIn) PureWhite else PureBlack,
+                        animationSpec = tween(220),
+                        label = "checkInContent"
+                    )
+
                     Button(
                         onClick = onCheckIn,
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (hotspot.isCheckedIn) SurfaceContainerHigh else PureWhite,
-                            contentColor = if (hotspot.isCheckedIn) PureWhite else PureBlack
+                            containerColor = chipContainer,
+                            contentColor = chipContent
                         ),
-                        modifier = Modifier.height(36.dp)
+                        modifier = Modifier
+                            .height(36.dp)
+                            .scale(checkPop.value)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (hotspot.isCheckedIn) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = "Checked In",
-                                    tint = PureWhite,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
+                            AnimatedVisibility(
+                                visible = checkedIn,
+                                enter = fadeIn(tween(180)) + scaleIn(initialScale = 0.4f),
+                                exit = fadeOut(tween(120)) + scaleOut(targetScale = 0.4f)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Checked In",
+                                        tint = chipContent,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                }
                             }
                             Text(
-                                text = if (hotspot.isCheckedIn) "Checked In (${hotspot.checkInsCount})" else "Check-in",
+                                text = if (checkedIn) "Checked In (${hotspot.checkInsCount})" else "Check-in",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )
