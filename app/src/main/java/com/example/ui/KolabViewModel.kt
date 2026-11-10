@@ -343,6 +343,24 @@ class KolabViewModel(
         _currentTab.value = NavigationTab.HOME
     }
 
+    /**
+     * Deletes the account on the server, then returns to the login screen.
+     * Runs through the repository so tokens and cached state are cleared too.
+     */
+    fun deleteAccount() {
+        viewModelScope.launch {
+            val result = repository.deleteAccount()
+            result.onFailure {
+                showNotification(it.message ?: "Could not delete your account. Please try again.")
+            }
+            if (result.isSuccess) {
+                _authStep.value = AuthStep.LOGIN
+                _currentTab.value = NavigationTab.HOME
+                showNotification("Your account has been deleted.")
+            }
+        }
+    }
+
     // Tab Navigation
     fun selectTab(tab: NavigationTab) {
         if (tab == NavigationTab.CREATE) {

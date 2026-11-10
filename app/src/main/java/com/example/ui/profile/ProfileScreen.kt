@@ -1,5 +1,7 @@
 package com.example.ui.profile
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
@@ -37,6 +39,7 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LocalOffer
@@ -48,10 +51,12 @@ import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -63,6 +68,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -88,6 +94,9 @@ import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 import com.example.ui.theme.TrendGreen
+
+private const val PRIVACY_POLICY_URL = "https://wiz-cmd.github.io/kolab/legal/privacy.html"
+private const val TERMS_OF_SERVICE_URL = "https://wiz-cmd.github.io/kolab/legal/terms.html"
 
 @Composable
 fun ProfileScreen(
@@ -265,6 +274,7 @@ fun ProfileScreen(
                         onWithdraw = { viewModel.openWithdrawDialog() },
                         onAddPortfolio = { viewModel.openCreateSheet() },
                         onSignOut = { viewModel.signOut() },
+                        onDeleteAccount = { viewModel.deleteAccount() },
                         onNotify = { viewModel.showNotification(it) },
                         onOpenChat = onOpenChat
                     )
@@ -299,9 +309,13 @@ private fun MyStudioView(
     onWithdraw: () -> Unit,
     onAddPortfolio: () -> Unit,
     onSignOut: () -> Unit,
+    onDeleteAccount: () -> Unit,
     onNotify: (String) -> Unit,
     onOpenChat: (String) -> Unit
 ) {
+    val context = LocalContext.current
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -744,6 +758,33 @@ private fun MyStudioView(
             }
         }
 
+        // Legal links
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(CardBackground)
+                    .border(1.dp, DividerBorder, RoundedCornerShape(14.dp))
+            ) {
+                LegalRow(
+                    icon = Icons.Default.Lock,
+                    label = "Privacy Policy",
+                    onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_POLICY_URL)))
+                    }
+                )
+                HorizontalDivider(color = DividerBorder)
+                LegalRow(
+                    icon = Icons.Default.Description,
+                    label = "Terms of Service",
+                    onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(TERMS_OF_SERVICE_URL)))
+                    }
+                )
+            }
+        }
+
         // Sign Out Section
         item {
             Box(
@@ -778,9 +819,112 @@ private fun MyStudioView(
             }
         }
 
+        // Delete account (destructive, bottom of the screen)
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(CardBackground)
+                    .border(1.dp, DividerBorder, RoundedCornerShape(14.dp))
+                    .clickable { showDeleteDialog = true }
+                    .padding(16.dp)
+                    .testTag("delete_account_button")
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete Account",
+                        tint = DangerRed,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Delete Account",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = DangerRed
+                    )
+                }
+            }
+        }
+
         item {
             Spacer(modifier = Modifier.height(72.dp))
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete account?") },
+            text = {
+                Text(
+                    "This permanently deletes your profile, portfolio and personal data, and signs you out. " +
+                        "Deals and payments you already took part in are kept in anonymised form for accounting " +
+                        "and legal reasons. This cannot be undone."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDeleteAccount()
+                    }
+                ) {
+                    Text("Delete", color = DangerRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel", color = TextSecondary)
+                }
+            },
+            containerColor = CardBackground,
+            titleContentColor = TextPrimary,
+            textContentColor = TextSecondary
+        )
+    }
+}
+
+private val DangerRed = Color(0xFFE5484D)
+
+@Composable
+private fun LegalRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = TextSecondary,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = label,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = TextPrimary,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = "\u203A",
+            fontSize = 18.sp,
+            color = TextMuted
+        )
     }
 }
 

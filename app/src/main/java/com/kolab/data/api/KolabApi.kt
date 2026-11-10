@@ -64,6 +64,9 @@ interface KolabApi {
     @PATCH("users/me")
     suspend fun updateProfile(@Body request: UpdateProfileRequest): Response<UserResponse>
 
+    @DELETE("users/me")
+    suspend fun deleteAccount(): Response<Unit>
+
     @POST("users/me/portfolio")
     suspend fun addPortfolioItem(@Body request: PortfolioItemRequest): Response<PortfolioItemResponse>
 

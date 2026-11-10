@@ -163,6 +163,26 @@ class KolabRepository(
         }
     }
 
+    /**
+     * Permanently deletes the signed-in account (Play Store requirement).
+     * Local credentials are always cleared, even if the network call fails, so
+     * a deleted session can never be resumed from this device.
+     */
+    suspend fun deleteAccount(): Result<Unit> = withContext(Dispatchers.IO) {
+        if (_demoMode.value) {
+            logout()
+            return@withContext Result.success(Unit)
+        }
+        when (val r = safeCall { api.deleteAccount() }) {
+            is ApiResult.Success -> {
+                logout()
+                Result.success(Unit)
+            }
+            is ApiResult.Error -> Result.failure(Exception(r.message))
+            is ApiResult.Exception -> Result.failure(r.throwable)
+        }
+    }
+
     suspend fun logout() {
         if (!_demoMode.value) {
             tokenManager.getRefreshToken()?.let { rt ->
