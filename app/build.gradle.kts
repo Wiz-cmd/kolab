@@ -18,6 +18,27 @@ val kolabBaseUrl = providers
   .orElse(providers.environmentVariable("KOLAB_BASE_URL"))
   .getOrElse("http://10.0.2.2:3000/api/")
 
+// Optional Sentry DSN. Read from -P, the environment, or .env (the same file
+// the Secrets plugin uses). Always emitted as a valid Java string — an empty
+// value used to generate `String SENTRY_DSN = ;`, which broke CI builds.
+fun dotenvValue(key: String): String? =
+  rootProject.file(".env")
+    .takeIf { it.exists() }
+    ?.readLines()
+    ?.firstOrNull { it.trimStart().startsWith("$key=") }
+    ?.substringAfter('=')
+    ?.trim()
+    ?.removeSurrounding("\"")
+    ?.takeIf { it.isNotEmpty() }
+
+fun javaString(value: String): String =
+  "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+
+val sentryDsn = providers.gradleProperty("SENTRY_DSN").orNull
+  ?: providers.environmentVariable("SENTRY_DSN").orNull
+  ?: dotenvValue("SENTRY_DSN")
+  ?: ""
+
 android {
   namespace = "com.example"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
@@ -31,7 +52,8 @@ android {
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-    buildConfigField("String", "BASE_URL", "\"$kolabBaseUrl\"")
+    buildConfigField("String", "BASE_URL", javaString(kolabBaseUrl))
+    buildConfigField("String", "SENTRY_DSN", javaString(sentryDsn))
   }
 
   signingConfigs {
@@ -73,6 +95,8 @@ secrets {
   propertiesFileName = ".env"
   defaultPropertiesFileName = ".env.example"
   ignoreList.add("FIREBASE_APPCHECK_DEBUG_TOKEN")
+  // Declared explicitly above so an empty value still compiles.
+  ignoreList.add("SENTRY_DSN")
 }
 
 googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
