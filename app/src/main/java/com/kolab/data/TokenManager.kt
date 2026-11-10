@@ -2,22 +2,11 @@ package com.kolab.data
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 
 class TokenManager(context: Context) {
 
-    private val masterKey = MasterKey.Builder(context)
-        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-        .build()
-
-    private val prefs: SharedPreferences = EncryptedSharedPreferences.create(
-        context,
-        "kolab_secure_prefs",
-        masterKey,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
+    // Never throws: falls back to plain prefs if the Keystore entry is broken.
+    private val prefs: SharedPreferences = SecurePrefs.create(context, "kolab_secure_prefs")
 
     companion object {
         private const val KEY_REFRESH_TOKEN = "refresh_token"

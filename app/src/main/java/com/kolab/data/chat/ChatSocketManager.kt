@@ -28,12 +28,15 @@ class ChatSocketManager(private val tokenManager: TokenManager) {
     fun connect() {
         if (socket?.connected() == true) return
 
-        val baseUrl = com.example.BuildConfig.BASE_URL.trimEnd('/')
+        val configured = com.example.BuildConfig.BASE_URL.trimEnd('/')
             .replace("/api", "")
-            .replace("http://", "http://")
-            .replace("https://", "https://")
-
-        val uri = URI.create(baseUrl)
+        // A misconfigured/empty BASE_URL must not crash the app on connect.
+        val uri = runCatching { URI.create(configured) }.getOrNull()
+        if (uri == null || uri.host.isNullOrBlank()) {
+            Log.w(TAG, "Chat disabled: invalid base URL '$configured'")
+            _connectionState.tryEmit(ConnectionState.ERROR)
+            return
+        }
         val options = IO.Options.builder()
             .setAuth(mapOf("token" to (tokenManager.getAccessToken() ?: "")))
             .setExtraHeaders(mapOf("Authorization" to listOf("Bearer ${tokenManager.getAccessToken() ?: ""}")))

@@ -25,3 +25,5 @@ google-services.json
 debug.keystore
 *.jks
 *.keystore
+keystore.properties
+release/

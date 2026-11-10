@@ -2,8 +2,7 @@ package com.example.data.security
 
 import android.content.Context
 import android.util.Base64
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
+import com.kolab.data.SecurePrefs
 import org.json.JSONObject
 import java.security.KeyFactory
 import java.security.KeyPair
@@ -37,17 +36,8 @@ import javax.crypto.spec.SecretKeySpec
  */
 class ChatCrypto(context: Context) {
 
-    private val masterKey = MasterKey.Builder(context)
-        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-        .build()
-
-    private val prefs = EncryptedSharedPreferences.create(
-        context,
-        "kolab_e2ee_keys",
-        masterKey,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
+    // Never throws: a broken Keystore entry falls back instead of crashing chat.
+    private val prefs = SecurePrefs.create(context, "kolab_e2ee_keys")
 
     private val keyFactory = KeyFactory.getInstance("EC")
 

@@ -13,16 +13,35 @@ import java.util.concurrent.TimeUnit
 
 object ApiClient {
 
+    // Used when the build has no (or a malformed) base URL. Shipping an empty
+    // BASE_URL used to crash the app in Retrofit's baseUrl() at startup.
+    const val FALLBACK_BASE_URL = "https://kolab-api-7r6i.onrender.com/api/"
+
     private var retrofit: Retrofit? = null
     private var api: KolabApi? = null
+
+    /**
+     * Returns a URL Retrofit accepts: absolute http(s) with a host and a
+     * trailing slash. Anything else falls back to production.
+     */
+    internal fun normalizeBaseUrl(raw: String): String {
+        val candidate = raw.trim()
+        val parsed = runCatching { java.net.URI(candidate) }.getOrNull()
+        val usable = parsed != null &&
+            (parsed.scheme == "http" || parsed.scheme == "https") &&
+            !parsed.host.isNullOrBlank()
+        val chosen = if (usable) candidate else FALLBACK_BASE_URL
+        return if (chosen.endsWith("/")) chosen else "$chosen/"
+    }
 
     private val gson: Gson = GsonBuilder()
         .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
         .create()
 
     fun initialize(tokenManager: TokenManager, baseUrl: String) {
+        val safeBaseUrl = normalizeBaseUrl(baseUrl)
         val authInterceptor = AuthInterceptor { tokenManager.getAccessToken() }
-        val authenticator = TokenAuthenticator(tokenManager, baseUrl)
+        val authenticator = TokenAuthenticator(tokenManager, safeBaseUrl)
 
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             // Never log bearer tokens / refresh tokens, even in debug builds.
@@ -47,7 +66,7 @@ object ApiClient {
             .build()
 
         retrofit = Retrofit.Builder()
-            .baseUrl(baseUrl)
+            .baseUrl(safeBaseUrl)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()

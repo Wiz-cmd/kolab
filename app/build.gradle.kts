@@ -1,4 +1,5 @@
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
+import java.util.Properties
 
 plugins {
   alias(libs.plugins.android.application)
@@ -40,6 +41,33 @@ val sentryDsn = providers.gradleProperty("SENTRY_DSN").orNull
   ?: dotenvValue("SENTRY_DSN")
   ?: ""
 
+// Release signing. Values come from environment variables (CI secrets) first,
+// then keystore.properties (local, gitignored). When no keystore is present the
+// release build stays unsigned instead of failing.
+val keystoreProperties = Properties().apply {
+  val file = rootProject.file("keystore.properties")
+  if (file.exists()) file.inputStream().use { load(it) }
+}
+
+fun signingValue(env: String, property: String): String? =
+  providers.environmentVariable(env).orNull?.takeIf { it.isNotBlank() }
+    ?: keystoreProperties.getProperty(property)?.takeIf { it.isNotBlank() }
+
+val releaseKeystore = file(
+  signingValue("KEYSTORE_PATH", "storeFile") ?: "${rootDir}/my-upload-key.jks",
+)
+val releaseStorePassword = signingValue("STORE_PASSWORD", "storePassword")
+val releaseKeyAlias = signingValue("KEY_ALIAS", "keyAlias") ?: "kolab"
+val releaseKeyPassword = signingValue("KEY_PASSWORD", "keyPassword") ?: releaseStorePassword
+val canSignRelease = releaseKeystore.isFile && !releaseStorePassword.isNullOrBlank()
+
+val appVersionCode = providers.gradleProperty("VERSION_CODE").orNull?.toIntOrNull()
+  ?: providers.environmentVariable("VERSION_CODE").orNull?.toIntOrNull()
+  ?: 1
+val appVersionName = providers.gradleProperty("VERSION_NAME").orNull?.takeIf { it.isNotBlank() }
+  ?: providers.environmentVariable("VERSION_NAME").orNull?.takeIf { it.isNotBlank() }
+  ?: "1.0"
+
 android {
   namespace = "com.example"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
@@ -48,8 +76,8 @@ android {
     applicationId = "com.aistudio.kolab.creatives"
     minSdk = 24
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    versionCode = appVersionCode
+    versionName = appVersionName
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -58,12 +86,13 @@ android {
   }
 
   signingConfigs {
-    create("release") {
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
-      storeFile = file(keystorePath)
-      storePassword = System.getenv("STORE_PASSWORD")
-      keyAlias = "upload"
-      keyPassword = System.getenv("KEY_PASSWORD")
+    if (canSignRelease) {
+      create("release") {
+        storeFile = releaseKeystore
+        storePassword = releaseStorePassword
+        keyAlias = releaseKeyAlias
+        keyPassword = releaseKeyPassword
+      }
     }
   }
 
@@ -72,7 +101,7 @@ android {
       isCrunchPngs = false
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      signingConfig = signingConfigs.getByName("release")
+      signingConfig = signingConfigs.findByName("release")
     }
   }
   compileOptions {
