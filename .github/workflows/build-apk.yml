@@ -34,7 +34,7 @@ jobs:
           java-version: "17"
 
       - name: Set up Android SDK (accepts licenses, installs cmdline-tools)
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Ensure required SDK components
         run: |
