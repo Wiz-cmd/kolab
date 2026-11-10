@@ -13,10 +13,11 @@ plugins {
 // the host machine. Override with: ./gradlew assembleDebug
 //   -PKOLAB_BASE_URL=http://192.168.x.x:3000/api/   (physical device)
 //   (or set the KOLAB_BASE_URL environment variable)
-val kolabBaseUrl = providers
-  .gradleProperty("KOLAB_BASE_URL")
-  .orElse(providers.environmentVariable("KOLAB_BASE_URL"))
-  .getOrElse("http://10.0.2.2:3000/api/")
+// Empty values are ignored: CI passes an empty env var on push events, and an
+// empty base URL would ship an APK that cannot reach any API.
+val kolabBaseUrl = providers.gradleProperty("KOLAB_BASE_URL").orNull?.takeIf { it.isNotBlank() }
+  ?: providers.environmentVariable("KOLAB_BASE_URL").orNull?.takeIf { it.isNotBlank() }
+  ?: "http://10.0.2.2:3000/api/"
 
 // Optional Sentry DSN. Read from -P, the environment, or .env (the same file
 // the Secrets plugin uses). Always emitted as a valid Java string — an empty

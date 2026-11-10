@@ -12,10 +12,11 @@ on:
       base_url:
         description: >-
           Backend base URL baked into the APK (e.g.
-          http://192.168.1.10:3000/api/ for a physical phone on Wi-Fi,
-          or leave default http://10.0.2.2:3000/api/ for the emulator).
+          https://kolab-api-7r6i.onrender.com/api/ for the hosted API,
+          http://192.168.1.10:3000/api/ for a phone on the same Wi-Fi,
+          or http://10.0.2.2:3000/api/ for the emulator).
         required: true
-        default: "http://10.0.2.2:3000/api/"
+        default: "https://kolab-api-7r6i.onrender.com/api/"
 
 permissions:
   contents: read
@@ -86,7 +87,9 @@ jobs:
 
       - name: Build debug APK
         env:
-          KOLAB_BASE_URL: ${{ inputs.base_url }}
+          # `inputs.base_url` is empty on push events; fall back to production
+          # so the uploaded APK is usable on a real phone.
+          KOLAB_BASE_URL: ${{ inputs.base_url || 'https://kolab-api-7r6i.onrender.com/api/' }}
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
