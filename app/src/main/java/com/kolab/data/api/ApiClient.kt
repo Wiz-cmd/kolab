@@ -25,6 +25,9 @@ object ApiClient {
         val authenticator = TokenAuthenticator(tokenManager, baseUrl)
 
         val loggingInterceptor = HttpLoggingInterceptor().apply {
+            // Never log bearer tokens / refresh tokens, even in debug builds.
+            redactHeader("Authorization")
+            redactHeader("Cookie")
             level = if (com.example.BuildConfig.DEBUG) {
                 HttpLoggingInterceptor.Level.BODY
             } else {
@@ -36,9 +39,11 @@ object ApiClient {
             .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
             .authenticator(authenticator)
+            .retryOnConnectionFailure(true)
             .connectTimeout(8, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
+            .callTimeout(45, TimeUnit.SECONDS)
             .build()
 
         retrofit = Retrofit.Builder()

@@ -112,6 +112,8 @@ dependencies {
   implementation(libs.socketio.client)
   // implementation(libs.firebase.ai)
   implementation(libs.firebase.messaging)
+  // Crash/error reporting. No-op until SENTRY_DSN is set in .env.
+  implementation(libs.sentry.android)
   // Uncomment to use Firestore:
   // implementation(libs.firebase.firestore)
 
