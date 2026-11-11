@@ -146,6 +146,7 @@ class KolabViewModel(
     val availableBalance: StateFlow<Double> = repository.availableBalance
     val userPortfolio: StateFlow<List<String>> = repository.userPortfolio
     val currentLocation: StateFlow<String> = repository.currentLocation
+    val dataError: StateFlow<String?> = repository.dataError
 
     // Loading state for the shimmer skeletons
     val feedLoading: StateFlow<Boolean> = repository.feedLoading
@@ -213,6 +214,11 @@ class KolabViewModel(
     }
 
     private fun loadHomeData() {
+        viewModelScope.launch { repository.refreshAll() }
+    }
+
+    /** Retries the public data load after a connection failure. */
+    fun retryLoad() {
         viewModelScope.launch { repository.refreshAll() }
     }
 

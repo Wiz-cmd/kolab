@@ -525,6 +525,8 @@ private fun MainAppScaffold(
     onTabSelected: (NavigationTab) -> Unit,
     onOpenChat: (String) -> Unit
 ) {
+    val dataError by viewModel.dataError.collectAsState()
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = Color.Transparent,
@@ -553,6 +555,38 @@ private fun MainAppScaffold(
                     NavigationTab.PLACES -> PlacesScreen(viewModel = viewModel)
                     NavigationTab.CREATE -> HomeScreen(viewModel = viewModel)
                     NavigationTab.PROFILE -> ProfileScreen(viewModel = viewModel, onOpenChat = onOpenChat)
+                }
+            }
+
+            dataError?.let { message ->
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .statusBarsPadding()
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(DarkSurface)
+                        .border(1.dp, DividerBorder, RoundedCornerShape(12.dp))
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                        .testTag("connection_error_banner"),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = message,
+                        fontSize = 12.sp,
+                        color = TextPrimary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Retry",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PureWhite,
+                        modifier = Modifier
+                            .clickable { viewModel.retryLoad() }
+                            .testTag("connection_retry_button")
+                    )
                 }
             }
         }

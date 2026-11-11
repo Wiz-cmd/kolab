@@ -66,6 +66,7 @@ class KolabRepository(
     private val _availableBalance = MutableStateFlow(0.0)
     private val _userPortfolio = MutableStateFlow<List<String>>(emptyList())
     private val _currentLocation = MutableStateFlow(DEFAULT_LOCATION)
+    private val _dataError = MutableStateFlow<String?>(null)
 
     val creatives: StateFlow<List<CreativeProfile>> = _creatives.asStateFlow()
     val feedPosts: StateFlow<List<FeedPost>> = _feedPosts.asStateFlow()
@@ -75,6 +76,7 @@ class KolabRepository(
     val availableBalance: StateFlow<Double> = _availableBalance.asStateFlow()
     val userPortfolio: StateFlow<List<String>> = _userPortfolio.asStateFlow()
     val currentLocation: StateFlow<String> = _currentLocation.asStateFlow()
+    val dataError: StateFlow<String?> = _dataError.asStateFlow()
 
     // ── Guest session ───────────────────────────────────────────────────
     // Guests browse the live public API without tokens. Anything protected
@@ -196,6 +198,7 @@ class KolabRepository(
     // ── Loaders ─────────────────────────────────────────────────────────
 
     suspend fun refreshAll() = withContext(Dispatchers.IO) {
+        _dataError.value = null
         coroutineScope {
             launch { loadCreatives() }
             launch { loadFeed(FeedMode.FOLLOWING) }
@@ -217,7 +220,7 @@ class KolabRepository(
                         .filter { !it.role.equals("BRAND", ignoreCase = true) }
                         .map { it.toCreative() }
                 }
-                else -> {}
+                else -> noteLoadFailure()
             }
         } finally {
             _creativesLoading.value = false
@@ -229,7 +232,7 @@ class KolabRepository(
         try {
             when (val r = safeCall { api.getFeed() }) {
                 is ApiResult.Success -> _feedPosts.value = r.data.data.map { it.toFeedPost() }
-                else -> {}
+                else -> noteLoadFailure()
             }
         } finally {
             _feedLoading.value = false
@@ -241,7 +244,7 @@ class KolabRepository(
         try {
             when (val r = safeCall { api.listHotspots() }) {
                 is ApiResult.Success -> _hotspots.value = r.data.data.map { it.toHotspot() }
-                else -> {}
+                else -> noteLoadFailure()
             }
         } finally {
             _hotspotsLoading.value = false
@@ -265,7 +268,7 @@ class KolabRepository(
                     )
                 }
             }
-            else -> {}
+            else -> noteLoadFailure()
         }
     }
 
@@ -281,7 +284,7 @@ class KolabRepository(
                     .filter { me != null && (it.creator.id == me || it.brand.id == me) }
                     .map { it.toActiveDeal() }
             }
-            else -> {}
+            else -> noteLoadFailure()
         }
     }
 
@@ -297,11 +300,15 @@ class KolabRepository(
                     val urls = r.data.flatMap { it.items }.map { it.url }.filter { it.isNotBlank() }
                     if (urls.isNotEmpty()) _userPortfolio.value = urls
                 }
-                else -> {}
+                else -> noteLoadFailure()
             }
         } finally {
             _portfolioLoading.value = false
         }
+    }
+
+    private fun noteLoadFailure() {
+        _dataError.value = "Can't reach Kolab. Check your connection and try again."
     }
 
     // ── Actions ─────────────────────────────────────────────────────────
