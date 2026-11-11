@@ -13,7 +13,7 @@ Everything here is ready except the items only the account owner can supply
 | Account deletion URL | `https://wiz-cmd.github.io/kolab/legal/delete-account.html` |
 | Terms URL | `https://wiz-cmd.github.io/kolab/legal/terms.html` |
 | Support email | `support@kolab.co.za` |
-| Demo login for reviewers | `brand@kolab.co.za` / `Password123!` |
+| Reviewer access | “Continue as guest” is built in; an account can be created in-app |
 
 ## 2. Store listing (copy/paste)
 
@@ -94,24 +94,24 @@ deal detail, chat, payments/wallet, profile.
 ## 6. App access instructions (for reviewers)
 
 ```
-Use the brand demo account:
-Email: brand@kolab.co.za
-Password: Password123!
+1. Tap "Continue as guest" on the login screen to browse creators, hotspots and
+   the public feed immediately, with no credentials.
+2. To test booking, messaging, posting and account deletion, tap "Create an
+   account" and register with any email address. No invitation is needed.
 
 The app talks to https://kolab-api-7r6i.onrender.com/api/ (production).
 If the API is asleep, the first request can take up to 60 seconds.
-A creator account is also available: model@kolab.co.za / Password123!
 ```
 
 ## 7. Release checklist
 
 1. [ ] Play Console account created and identity verified (owner).
 2. [ ] App created with package `com.aistudio.kolab.creatives`.
-3. [ ] AAB from the `v1.0.0` GitHub Release uploaded to Internal testing.
+3. [ ] AAB from the `v1.0.3` GitHub Release uploaded to Internal testing.
 4. [ ] Store listing, graphics and screenshots added.
 5. [ ] Data safety and content rating forms completed with the answers above.
 6. [ ] Privacy Policy and deletion URLs entered.
-7. [ ] Demo account credentials added under App access.
+7. [ ] Guest access and account-creation instructions added under App access.
 8. [ ] Internal test on a real device (API must be live).
 9. [ ] Closed testing (12 testers, 14 days) if the account is new – Google policy.
 10. [ ] Production rollout.

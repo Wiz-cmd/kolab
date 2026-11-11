@@ -160,6 +160,30 @@ fun HomeScreen(viewModel: KolabViewModel) {
                     }
                 }
 
+                if (!feedLoading && feedPosts.isEmpty()) {
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 40.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Nothing in your feed yet",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = PureWhite
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Follow creatives or check back soon for new work.",
+                                fontSize = 12.sp,
+                                color = TextSecondary
+                            )
+                        }
+                    }
+                }
+
                 item {
                     Spacer(modifier = Modifier.height(72.dp))
                 }

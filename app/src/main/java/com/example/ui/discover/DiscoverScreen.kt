@@ -305,6 +305,30 @@ fun DiscoverScreen(viewModel: KolabViewModel) {
                             }
                         }
 
+                        if (!creativesLoading && creatives.isEmpty()) {
+                            item {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 40.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "No creatives found",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = PureWhite
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = "Try another category or check back soon.",
+                                        fontSize = 12.sp,
+                                        color = TextSecondary
+                                    )
+                                }
+                            }
+                        }
+
                         item {
                             Spacer(modifier = Modifier.height(72.dp))
                         }
@@ -426,7 +450,7 @@ private fun CreativeCard(
                             )
                             Spacer(modifier = Modifier.width(3.dp))
                             Text(
-                                text = "${creative.rating}",
+                                text = if (creative.rating > 0.0) "${creative.rating}" else "New",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = PureWhite
@@ -600,14 +624,14 @@ private fun CreativeDetailBottomSheet(
                         color = PureWhite
                     )
                     Text(
-                        text = "Collabs",
+                        text = "Posts",
                         fontSize = 11.sp,
                         color = TextSecondary
                     )
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "${creative.rating} ★",
+                        text = if (creative.rating > 0.0) "${creative.rating} ★" else "New",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = StarGold
@@ -634,7 +658,7 @@ private fun CreativeDetailBottomSheet(
                 )
             ) {
                 Text(
-                    text = "Request Collaboration (${creative.rate})",
+                    text = "Request Collaboration",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = PureBlack

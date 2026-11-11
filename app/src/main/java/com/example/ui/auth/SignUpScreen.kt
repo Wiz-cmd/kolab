@@ -387,13 +387,13 @@ fun SignUpScreen(viewModel: KolabViewModel) {
                         color = TextSecondary
                     )
                     Text(
-                        text = "Explore the demo",
+                        text = "Continue as guest",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = PureWhite,
                         modifier = Modifier
-                            .clickable { viewModel.enterDemoMode() }
-                            .testTag("signup_explore_demo_button")
+                            .clickable { viewModel.continueAsGuest() }
+                            .testTag("signup_continue_as_guest_button")
                     )
                 }
 

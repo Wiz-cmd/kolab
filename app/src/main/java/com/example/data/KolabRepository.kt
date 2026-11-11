@@ -63,7 +63,7 @@ class KolabRepository(
     private val _hotspots = MutableStateFlow<List<Hotspot>>(emptyList())
     private val _leaderboard = MutableStateFlow<List<LeaderboardItem>>(emptyList())
     private val _activeDeals = MutableStateFlow<List<ActiveDeal>>(emptyList())
-    private val _availableBalance = MutableStateFlow(DEMO_BALANCE)
+    private val _availableBalance = MutableStateFlow(0.0)
     private val _userPortfolio = MutableStateFlow<List<String>>(emptyList())
     private val _currentLocation = MutableStateFlow(DEFAULT_LOCATION)
 
@@ -76,14 +76,18 @@ class KolabRepository(
     val userPortfolio: StateFlow<List<String>> = _userPortfolio.asStateFlow()
     val currentLocation: StateFlow<String> = _currentLocation.asStateFlow()
 
-    // ── Demo (offline) mode ─────────────────────────────────────────────
-    // When the backend can't be reached the app drops into a fully local
-    // "demo" session so every screen is usable. Human-readable failures
-    // (wrong password, validation) never trigger this — only connectivity.
-    private val _demoMode = MutableStateFlow(tokenManager.isDemoMode())
-    val demoMode: StateFlow<Boolean> = _demoMode.asStateFlow()
+    // ── Guest session ───────────────────────────────────────────────────
+    // Guests browse the live public API without tokens. Anything protected
+    // returns 401 and the UI asks them to sign in.
 
-    fun isDemoMode(): Boolean = _demoMode.value
+    fun isGuestMode(): Boolean = tokenManager.isGuestMode()
+
+    fun enterGuestSession() {
+        tokenManager.enterGuestMode()
+        _activeDeals.value = emptyList()
+        _userPortfolio.value = emptyList()
+        _availableBalance.value = 0.0
+    }
 
     // ── Loading state (drives the shimmer skeletons) ────────────────────
     private val _creativesLoading = MutableStateFlow(false)
@@ -112,10 +116,8 @@ class KolabRepository(
                 tokenManager.saveTokens(r.data.accessToken, r.data.refreshToken)
                 getMe()
             }
-            is ApiResult.Error ->
-                if (r.code == NO_BACKEND_MARKER) startDemoSession(DemoData.CURRENT_USER_NAME, email.trim())
-                else Result.failure(Exception(r.message))
-            is ApiResult.Exception -> startDemoSession(DemoData.CURRENT_USER_NAME, email.trim())
+            is ApiResult.Error -> Result.failure(Exception(r.message))
+            is ApiResult.Exception -> Result.failure(r.throwable)
         }
     }
 
@@ -125,19 +127,12 @@ class KolabRepository(
                 tokenManager.saveTokens(r.data.accessToken, r.data.refreshToken)
                 getMe()
             }
-            is ApiResult.Error ->
-                if (r.code == NO_BACKEND_MARKER) startDemoSession(name, email.trim())
-                else Result.failure(Exception(r.message))
-            is ApiResult.Exception -> startDemoSession(name, email.trim())
+            is ApiResult.Error -> Result.failure(Exception(r.message))
+            is ApiResult.Exception -> Result.failure(r.throwable)
         }
     }
 
     suspend fun getMe(): Result<UiUser> = withContext(Dispatchers.IO) {
-        if (_demoMode.value || tokenManager.isDemoMode()) {
-            _demoMode.value = true
-            seedDemoContent()
-            return@withContext Result.success(demoUiUser())
-        }
         when (val r = safeCall { api.getMe() }) {
             is ApiResult.Success -> {
                 val u = r.data
@@ -169,9 +164,8 @@ class KolabRepository(
      * a deleted session can never be resumed from this device.
      */
     suspend fun deleteAccount(): Result<Unit> = withContext(Dispatchers.IO) {
-        if (_demoMode.value) {
-            logout()
-            return@withContext Result.success(Unit)
+        if (!tokenManager.isLoggedIn()) {
+            return@withContext Result.failure(Exception("Sign in to delete your account."))
         }
         when (val r = safeCall { api.deleteAccount() }) {
             is ApiResult.Success -> {
@@ -184,93 +178,37 @@ class KolabRepository(
     }
 
     suspend fun logout() {
-        if (!_demoMode.value) {
+        if (tokenManager.isLoggedIn()) {
             tokenManager.getRefreshToken()?.let { rt ->
                 withContext(Dispatchers.IO) { safeCall { api.logout(RefreshRequest(rt)) } }
             }
         }
         tokenManager.clearAll()
-        _demoMode.value = false
         _activeDeals.value = emptyList()
         _creatives.value = emptyList()
         _feedPosts.value = emptyList()
         _hotspots.value = emptyList()
         _leaderboard.value = emptyList()
         _userPortfolio.value = emptyList()
-        _availableBalance.value = DEMO_BALANCE
-    }
-
-    // ── Demo session ────────────────────────────────────────────────────
-
-    /** Enters the fully-local demo session (used by the "Explore demo" action). */
-    fun enterDemoSession(
-        name: String = DemoData.CURRENT_USER_NAME,
-        email: String = DemoData.CURRENT_USER_EMAIL
-    ) {
-        startDemoSession(name, email)
-    }
-
-    private fun startDemoSession(name: String, email: String): Result<UiUser> {
-        val displayName = name.trim().takeIf { it.isNotBlank() } ?: DemoData.CURRENT_USER_NAME
-        val displayEmail = email.trim().takeIf { it.isNotBlank() } ?: DemoData.CURRENT_USER_EMAIL
-        tokenManager.enterDemoMode(DemoData.CURRENT_USER_ID, displayName, displayEmail)
-        _demoMode.value = true
-        seedDemoContent()
-        return Result.success(demoUiUser())
-    }
-
-    private fun demoUiUser(): UiUser = UiUser(
-        id = DemoData.CURRENT_USER_ID,
-        name = tokenManager.getUserName()?.takeIf { it.isNotBlank() } ?: DemoData.CURRENT_USER_NAME,
-        email = tokenManager.getUserEmail()?.takeIf { it.isNotBlank() } ?: DemoData.CURRENT_USER_EMAIL,
-        role = tokenManager.getUserRole()?.takeIf { it.isNotBlank() } ?: "CREATOR",
-        location = DEFAULT_LOCATION,
-        avatar = DemoData.portfolio().first(),
-        bio = DEFAULT_BIO,
-        isVerified = true,
-        followersCount = 14_200,
-        followingCount = 312,
-        postsCount = 48
-    )
-
-    private fun seedDemoContent() {
-        _creatives.value = DemoData.creatives()
-        _feedPosts.value = DemoData.feedPosts()
-        _hotspots.value = DemoData.hotspots()
-        _leaderboard.value = DemoData.leaderboard()
-        _activeDeals.value = DemoData.activeDeals()
-        _userPortfolio.value = DemoData.portfolio()
-        _availableBalance.value = DEMO_BALANCE
-        _currentLocation.value = DEFAULT_LOCATION
-        _creativesLoading.value = false
-        _feedLoading.value = false
-        _hotspotsLoading.value = false
-        _portfolioLoading.value = false
+        _availableBalance.value = 0.0
     }
 
     // ── Loaders ─────────────────────────────────────────────────────────
 
     suspend fun refreshAll() = withContext(Dispatchers.IO) {
-        if (_demoMode.value) {
-            seedDemoContent()
-            return@withContext
-        }
         coroutineScope {
             launch { loadCreatives() }
             launch { loadFeed(FeedMode.FOLLOWING) }
             launch { loadHotspots() }
             launch { loadLeaderboard() }
-            launch { loadDeals() }
-            launch { loadPortfolio() }
+            if (tokenManager.isLoggedIn()) {
+                launch { loadDeals() }
+                launch { loadPortfolio() }
+            }
         }
     }
 
     private suspend fun loadCreatives() {
-        if (_demoMode.value) {
-            _creatives.value = DemoData.creatives()
-            _creativesLoading.value = false
-            return
-        }
         _creativesLoading.value = true
         try {
             when (val r = safeCall { api.listUsers(take = 50) }) {
@@ -332,8 +270,8 @@ class KolabRepository(
     }
 
     private suspend fun loadDeals() {
-        if (_demoMode.value) {
-            _activeDeals.value = DemoData.activeDeals()
+        if (!tokenManager.isLoggedIn()) {
+            _activeDeals.value = emptyList()
             return
         }
         when (val r = safeCall { api.listDeals() }) {
@@ -348,6 +286,10 @@ class KolabRepository(
     }
 
     private suspend fun loadPortfolio() {
+        if (!tokenManager.isLoggedIn()) {
+            _userPortfolio.value = emptyList()
+            return
+        }
         _portfolioLoading.value = true
         try {
             when (val r = safeCall { api.listCollections() }) {
@@ -365,6 +307,7 @@ class KolabRepository(
     // ── Actions ─────────────────────────────────────────────────────────
 
     fun toggleLike(postId: String) {
+        if (!tokenManager.isLoggedIn()) return
         val list = _feedPosts.value.toMutableList()
         val idx = list.indexOfFirst { it.id == postId }
         if (idx == -1) return
@@ -375,8 +318,6 @@ class KolabRepository(
             likes = (post.likes + if (newLiked) 1 else -1).coerceAtLeast(0)
         )
         _feedPosts.value = list
-
-        if (_demoMode.value) return
 
         scope.launch {
             when (val r = safeCall { api.toggleLike(postId) }) {
@@ -394,14 +335,13 @@ class KolabRepository(
     }
 
     fun toggleCheckIn(hotspotId: String) {
+        if (!tokenManager.isLoggedIn()) return
         val list = _hotspots.value.toMutableList()
         val idx = list.indexOfFirst { it.id == hotspotId }
         if (idx == -1) return
         val spot = list[idx]
         list[idx] = spot.copy(isCheckedIn = true, checkInsCount = spot.checkInsCount + 1)
         _hotspots.value = list
-
-        if (_demoMode.value) return
 
         scope.launch {
             when (val r = safeCall { api.checkIn(hotspotId) }) {
@@ -419,22 +359,7 @@ class KolabRepository(
     }
 
     fun addPost(author: String, location: String, description: String, imageUrl: String, isStudio: Boolean) {
-        if (_demoMode.value) {
-            _feedPosts.value = listOf(
-                FeedPost(
-                    id = "demo-local-${System.currentTimeMillis()}",
-                    author = author.ifBlank { tokenManager.getUserName() ?: DemoData.CURRENT_USER_NAME },
-                    location = location.ifBlank { _currentLocation.value },
-                    description = description,
-                    imageUrl = imageUrl,
-                    isStudioOrGear = isStudio,
-                    likes = 0,
-                    isLiked = false,
-                    timestamp = "just now"
-                )
-            ) + _feedPosts.value
-            return
-        }
+        if (!tokenManager.isLoggedIn()) return
         scope.launch {
             when (val r = safeCall { api.createPost(CreatePostRequest(description = description, images = listOfNotNull(imageUrl.takeIf { it.isNotBlank() }), category = if (isStudio) "studio" else "general")) }) {
                 is ApiResult.Success -> {
@@ -459,11 +384,10 @@ class KolabRepository(
     }
 
     fun addPortfolioImage(url: String) {
-        if (url.isBlank()) return
+        if (url.isBlank() || !tokenManager.isLoggedIn()) return
         if (!_userPortfolio.value.contains(url)) {
             _userPortfolio.value = _userPortfolio.value + url
         }
-        if (_demoMode.value) return
         scope.launch {
             safeCall { api.addPortfolioItem(PortfolioItemRequest(title = "New project", url = url)) }
         }
@@ -472,10 +396,7 @@ class KolabRepository(
     suspend fun withdrawFunds(amount: Double): Boolean = withContext(Dispatchers.IO) {
         if (amount <= 0) return@withContext false
         if (amount > _availableBalance.value) return@withContext false
-        if (_demoMode.value) {
-            _availableBalance.value -= amount
-            return@withContext true
-        }
+        if (!tokenManager.isLoggedIn()) return@withContext false
         when (val r = safeCall { api.requestWithdrawal(WithdrawalRequest(amount, method = "bank")) }) {
             is ApiResult.Success -> {
                 _availableBalance.value -= amount
@@ -493,24 +414,7 @@ class KolabRepository(
     // ── Deals (collab request → deal) ───────────────────────────────────
 
     fun createDeal(creatorId: String, description: String, amount: Double) {
-        if (_demoMode.value) {
-            val campaign = description.substringBefore('\n').take(26).ifBlank { "New collaboration" }
-            _activeDeals.value = listOf(
-                ActiveDeal(
-                    id = "demo-deal-${System.currentTimeMillis()}",
-                    brand = tokenManager.getUserName()?.takeIf { it.isNotBlank() } ?: "Your Studio",
-                    campaign = campaign,
-                    type = displayType(description),
-                    status = "Awaiting Payment",
-                    amount = "R" + String.format(Locale.US, "%,.0f", amount),
-                    iconType = if (description.lowercase().contains("music") ||
-                        description.lowercase().contains("video") ||
-                        description.lowercase().contains("film")
-                    ) "headphones" else "camera"
-                )
-            ) + _activeDeals.value
-            return
-        }
+        if (!tokenManager.isLoggedIn()) return
         scope.launch {
             when (val r = safeCall {
                 api.createDeal(
@@ -531,7 +435,9 @@ class KolabRepository(
     // ── Chat ────────────────────────────────────────────────────────────
 
     suspend fun getMessages(dealId: String): Result<List<UiMessage>> = withContext(Dispatchers.IO) {
-        if (_demoMode.value) return@withContext Result.success(emptyList())
+        if (!tokenManager.isLoggedIn()) {
+            return@withContext Result.failure(Exception("Sign in to view messages."))
+        }
         when (val r = safeCall { api.getMessages(dealId) }) {
             is ApiResult.Success -> Result.success(
                 r.data.data.map { msg ->
@@ -544,7 +450,9 @@ class KolabRepository(
     }
 
     suspend fun registerDeviceToken(token: String): Result<Unit> = withContext(Dispatchers.IO) {
-        if (_demoMode.value) return@withContext Result.success(Unit)
+        if (!tokenManager.isLoggedIn()) {
+            return@withContext Result.failure(Exception("Sign in to enable notifications."))
+        }
         when (val r = safeCall { api.registerDeviceToken(DeviceTokenRequest(token)) }) {
             is ApiResult.Success -> Result.success(Unit)
             is ApiResult.Error -> Result.failure(Exception(r.message))
@@ -555,11 +463,6 @@ class KolabRepository(
     // ── Feed mode ───────────────────────────────────────────────────────
 
     suspend fun loadFeed(mode: FeedMode) {
-        if (_demoMode.value) {
-            _feedPosts.value = DemoData.feedPosts()
-            _feedLoading.value = false
-            return
-        }
         _feedLoading.value = true
         try {
             when (mode) {
@@ -603,16 +506,6 @@ class KolabRepository(
     }
 
     suspend fun searchPosts(query: String, category: String? = null): Result<List<FeedPost>> = withContext(Dispatchers.IO) {
-        if (_demoMode.value) {
-            val q = query.trim()
-            val results = DemoData.feedPosts().filter { post ->
-                (q.isBlank() || post.description.contains(q, ignoreCase = true) ||
-                    post.author.contains(q, ignoreCase = true) ||
-                    post.location.contains(q, ignoreCase = true)) &&
-                    (category.isNullOrBlank() || post.description.contains(category, ignoreCase = true))
-            }
-            return@withContext Result.success(results)
-        }
         when (val r = safeCall { api.getFeed(take = 30, search = query.ifBlank { null }, category = category) }) {
             is ApiResult.Success -> Result.success(r.data.data.map { it.toFeedPost() })
             is ApiResult.Error -> Result.failure(Exception(r.message))
@@ -621,16 +514,6 @@ class KolabRepository(
     }
 
     suspend fun searchUsers(query: String): Result<List<CreativeProfile>> = withContext(Dispatchers.IO) {
-        if (_demoMode.value) {
-            val q = query.trim()
-            val results = DemoData.creatives().filter { c ->
-                q.isBlank() || c.name.contains(q, ignoreCase = true) ||
-                    c.role.contains(q, ignoreCase = true) ||
-                    c.category.contains(q, ignoreCase = true) ||
-                    c.location.contains(q, ignoreCase = true)
-            }
-            return@withContext Result.success(results)
-        }
         when (val r = safeCall { api.listUsers(take = 50, search = query.ifBlank { null }) }) {
             is ApiResult.Success -> Result.success(
                 r.data.data.filter { !it.role.equals("BRAND", ignoreCase = true) }.map { it.toCreative() }
@@ -643,7 +526,9 @@ class KolabRepository(
     // ── Follow ──────────────────────────────────────────────────────────
 
     suspend fun followUser(userId: String): Result<Unit> = withContext(Dispatchers.IO) {
-        if (_demoMode.value) return@withContext Result.success(Unit)
+        if (!tokenManager.isLoggedIn()) {
+            return@withContext Result.failure(Exception("Sign in to follow creatives."))
+        }
         when (val r = safeCall { api.followUser(userId) }) {
             is ApiResult.Success -> Result.success(Unit)
             is ApiResult.Error -> Result.failure(Exception(r.message))
@@ -652,7 +537,9 @@ class KolabRepository(
     }
 
     suspend fun unfollowUser(userId: String): Result<Unit> = withContext(Dispatchers.IO) {
-        if (_demoMode.value) return@withContext Result.success(Unit)
+        if (!tokenManager.isLoggedIn()) {
+            return@withContext Result.failure(Exception("Sign in to manage who you follow."))
+        }
         when (val r = safeCall { api.unfollowUser(userId) }) {
             is ApiResult.Success -> Result.success(Unit)
             is ApiResult.Error -> Result.failure(Exception(r.message))
@@ -667,7 +554,7 @@ class KolabRepository(
     /** Publishes this device's E2EE public key to the backend if it changed. */
     suspend fun ensurePublicKeyPublished(): String = withContext(Dispatchers.IO) {
         val pub = chatCrypto().myPublicKey()
-        if (_demoMode.value) return@withContext pub
+        if (!tokenManager.isLoggedIn()) return@withContext pub
         if (tokenManager.getPublicKey() != pub) {
             when (val r = safeCall { api.updateProfile(UpdateProfileRequest(publicKey = pub)) }) {
                 is ApiResult.Success -> tokenManager.savePublicKey(pub)
@@ -678,7 +565,7 @@ class KolabRepository(
     }
 
     suspend fun getUserPublicKey(userId: String): String? = withContext(Dispatchers.IO) {
-        if (_demoMode.value) return@withContext null
+        if (!tokenManager.isLoggedIn()) return@withContext null
         when (val r = safeCall { api.getUser(userId) }) {
             is ApiResult.Success -> r.data.publicKey?.takeIf { it.isNotBlank() }
             else -> null
@@ -687,7 +574,7 @@ class KolabRepository(
 
     /** The OTHER participant in a deal (the one that is not the current user). */
     suspend fun getDealPeerId(dealId: String): String? = withContext(Dispatchers.IO) {
-        if (_demoMode.value) return@withContext null
+        if (!tokenManager.isLoggedIn()) return@withContext null
         val me = tokenManager.getUserId() ?: return@withContext null
         when (val r = safeCall { api.getDeal(dealId) }) {
             is ApiResult.Success -> {
@@ -706,7 +593,6 @@ class KolabRepository(
     // ── Account security ────────────────────────────────────────────────
 
     suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> = withContext(Dispatchers.IO) {
-        if (_demoMode.value) return@withContext Result.failure(Exception(DEMO_UNAVAILABLE))
         when (val r = safeCall { api.changePassword(ChangePasswordRequest(currentPassword, newPassword)) }) {
             is ApiResult.Success -> Result.success(Unit)
             is ApiResult.Error -> Result.failure(Exception(r.message))
@@ -715,7 +601,6 @@ class KolabRepository(
     }
 
     suspend fun setup2FA(): Result<TwoFactorSetupResponse> = withContext(Dispatchers.IO) {
-        if (_demoMode.value) return@withContext Result.failure(Exception(DEMO_UNAVAILABLE))
         when (val r = safeCall { api.setup2FA() }) {
             is ApiResult.Success -> Result.success(r.data)
             is ApiResult.Error -> Result.failure(Exception(r.message))
@@ -724,7 +609,6 @@ class KolabRepository(
     }
 
     suspend fun enable2FA(code: String): Result<Unit> = withContext(Dispatchers.IO) {
-        if (_demoMode.value) return@withContext Result.failure(Exception(DEMO_UNAVAILABLE))
         when (val r = safeCall { api.enable2FA(TwoFactorEnableRequest(code)) }) {
             is ApiResult.Success -> Result.success(Unit)
             is ApiResult.Error -> Result.failure(Exception(r.message))
@@ -733,7 +617,6 @@ class KolabRepository(
     }
 
     suspend fun disable2FA(code: String): Result<Unit> = withContext(Dispatchers.IO) {
-        if (_demoMode.value) return@withContext Result.failure(Exception(DEMO_UNAVAILABLE))
         when (val r = safeCall { api.disable2FA(TwoFactorEnableRequest(code)) }) {
             is ApiResult.Success -> Result.success(Unit)
             is ApiResult.Error -> Result.failure(Exception(r.message))
@@ -742,10 +625,6 @@ class KolabRepository(
     }
 
     suspend fun logoutAllDevices(): Result<Unit> = withContext(Dispatchers.IO) {
-        if (_demoMode.value) {
-            logout()
-            return@withContext Result.success(Unit)
-        }
         when (val r = safeCall { api.logoutAll() }) {
             is ApiResult.Success -> Result.success(Unit)
             is ApiResult.Error -> Result.failure(Exception(r.message))
@@ -756,7 +635,6 @@ class KolabRepository(
     // ── Social login ────────────────────────────────────────────────────
 
     suspend fun socialStart(provider: String): Result<SocialStartResponse> = withContext(Dispatchers.IO) {
-        if (_demoMode.value) return@withContext Result.failure(Exception(DEMO_UNAVAILABLE))
         when (val r = safeCall { api.socialStart(provider) }) {
             is ApiResult.Success -> Result.success(r.data)
             is ApiResult.Error -> Result.failure(Exception(r.message))
@@ -765,9 +643,6 @@ class KolabRepository(
     }
 
     suspend fun socialExchange(provider: String, code: String, state: String): Result<UiUser> = withContext(Dispatchers.IO) {
-        if (_demoMode.value) {
-            return@withContext startDemoSession("${DemoData.CURRENT_USER_NAME} ($provider)", DemoData.CURRENT_USER_EMAIL)
-        }
         when (val r = safeCall { api.socialExchange(provider, SocialExchangeRequest(code, state)) }) {
             is ApiResult.Success -> {
                 tokenManager.saveTokens(r.data.accessToken, r.data.refreshToken)
@@ -784,14 +659,14 @@ class KolabRepository(
         id = id,
         name = name,
         role = prettifyRole(role),
-        location = location ?: DEFAULT_LOCATION,
+        location = location?.takeIf { it.isNotBlank() } ?: DEFAULT_LOCATION,
         category = prettifyRole(role),
-        rate = "R2,500 / hr",
-        rating = 4.9,
+        rate = "Rate on request",
+        rating = 0.0,
         imageUrl = avatar?.takeIf { it.isNotBlank() } ?: FALLBACK_AVATAR,
-        followers = if (followersCount > 0) formatAbbrev(followersCount) else "14.2K",
-        bio = bio ?: DEFAULT_BIO,
-        collabsCount = 86
+        followers = formatAbbrev(followersCount),
+        bio = bio?.takeIf { it.isNotBlank() } ?: "",
+        collabsCount = postsCount
     )
 
     private fun PostResponse.toFeedPost() = FeedPost(
@@ -810,8 +685,8 @@ class KolabRepository(
         id = id,
         name = name,
         location = listOfNotNull(city, province).joinToString(" • "),
-        rating = 4.8,
-        creatorTip = description?.takeIf { it.isNotBlank() } ?: "Top creative-era hotspot in ${city.ifBlank { "South Africa" }}.",
+        rating = 0.0,
+        creatorTip = description?.takeIf { it.isNotBlank() } ?: "Creative hotspot in ${city.ifBlank { "South Africa" }}.",
         imageUrl = image ?: FALLBACK_HOTSPOT,
         checkInsCount = checkInsCount,
         isCheckedIn = false,
@@ -898,12 +773,6 @@ class KolabRepository(
 
     companion object {
         private const val DEFAULT_LOCATION = "Johannesburg, South Africa"
-        private const val DEMO_BALANCE = 12450.0
-        /** safeCall() reports connectivity failures (UnknownHost / timeout) with code 0. */
-        private const val NO_BACKEND_MARKER = 0
-        private const val DEMO_UNAVAILABLE =
-            "This needs a live backend and isn't available in offline demo mode."
-        private const val DEFAULT_BIO = "Fashion Model & Creative Director based in South Africa. Working on editorial, high-concept, and commercial productions."
         private const val FALLBACK_AVATAR = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=80"
         private const val FALLBACK_HOTSPOT = "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&q=80"
         private const val SEARCH_SEPARATOR = "\u0001"

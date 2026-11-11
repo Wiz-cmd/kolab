@@ -70,17 +70,18 @@ class KolabViewModel(
     private val _authStep = MutableStateFlow(AuthStep.LOGIN)
     val authStep: StateFlow<AuthStep> = _authStep.asStateFlow()
 
-    private val _currentUserEmail = MutableStateFlow(repository.getUserEmail().ifBlank { "studio@kolab.com" })
+    private val _currentUserEmail = MutableStateFlow(repository.getUserEmail())
     val currentUserEmail: StateFlow<String> = _currentUserEmail.asStateFlow()
 
-    private val _currentUserName = MutableStateFlow(repository.getUserName().ifBlank { "Zanele Ndlovu" })
+    private val _currentUserName = MutableStateFlow(repository.getUserName())
     val currentUserName: StateFlow<String> = _currentUserName.asStateFlow()
 
     private val _isLoggingIn = MutableStateFlow(false)
     val isLoggingIn: StateFlow<Boolean> = _isLoggingIn.asStateFlow()
 
-    /** True while the app is running in the offline demo session. */
-    val isDemoMode: StateFlow<Boolean> = repository.demoMode
+    /** True while browsing the public API without an account. */
+    private val _isGuestMode = MutableStateFlow(repository.isGuestMode() && !repository.isLoggedIn())
+    val isGuestMode: StateFlow<Boolean> = _isGuestMode.asStateFlow()
 
     // Navigation State
     private val _currentTab = MutableStateFlow(NavigationTab.HOME)
@@ -176,17 +177,37 @@ class KolabViewModel(
     }
 
     private fun restoreSession() {
+        if (repository.isGuestMode() && !repository.isLoggedIn()) {
+            _isGuestMode.value = true
+            _currentUserName.value = "Guest"
+            _currentUserEmail.value = ""
+            _authStep.value = AuthStep.AUTHENTICATED
+            loadHomeData()
+            return
+        }
         if (!repository.isLoggedIn()) return
         viewModelScope.launch {
             repository.getMe()
                 .onSuccess { user ->
+                    _isGuestMode.value = false
                     _currentUserName.value = user.name.ifBlank { "Kolab Creator" }
                     _currentUserEmail.value = user.email
                     _authStep.value = AuthStep.AUTHENTICATED
                     loadHomeData()
                 }
                 .onFailure {
-                    _authStep.value = AuthStep.LOGIN
+                    // Keep a cached signed-in session usable when the network is
+                    // briefly unavailable; only fall back to login if the
+                    // credentials are actually gone.
+                    val cachedName = repository.getUserName()
+                    if (repository.isLoggedIn() && cachedName.isNotBlank()) {
+                        _currentUserName.value = cachedName
+                        _currentUserEmail.value = repository.getUserEmail()
+                        _authStep.value = AuthStep.AUTHENTICATED
+                        loadHomeData()
+                    } else {
+                        _authStep.value = AuthStep.LOGIN
+                    }
                 }
         }
     }
@@ -200,14 +221,25 @@ class KolabViewModel(
         _authStep.value = step
     }
 
-    /** Drops straight into the fully-local demo session (no backend required). */
-    fun enterDemoMode() {
+    /** Enters guest browsing without creating an account. */
+    fun continueAsGuest() {
         if (_isLoggingIn.value) return
-        repository.enterDemoSession(_currentUserName.value, _currentUserEmail.value)
-        _currentUserName.value = repository.getUserName().ifBlank { "Zanele Ndlovu" }
-        _currentUserEmail.value = repository.getUserEmail().ifBlank { "studio@kolab.com" }
+        repository.enterGuestSession()
+        _isGuestMode.value = true
+        _currentUserName.value = "Guest"
+        _currentUserEmail.value = ""
         _authStep.value = AuthStep.AUTHENTICATED
-        showNotification("Exploring Kolab in offline demo mode")
+        _currentTab.value = NavigationTab.HOME
+        loadHomeData()
+        showNotification("Browsing as guest. Sign in when you're ready to book or collaborate.")
+    }
+
+    private fun requireAccount(action: String): Boolean {
+        if (!repository.isLoggedIn()) {
+            showNotification("Sign in to $action")
+            return false
+        }
+        return true
     }
 
     fun login(email: String, pass: String) {
@@ -221,14 +253,12 @@ class KolabViewModel(
             try {
                 repository.login(email, pass)
                     .onSuccess { user ->
+                        _isGuestMode.value = false
                         _currentUserName.value = user.name.ifBlank { "Kolab Creator" }
                         _currentUserEmail.value = user.email
                         _authStep.value = AuthStep.AUTHENTICATED
                         loadHomeData()
-                        showNotification(
-                            if (repository.isDemoMode()) "Backend offline — exploring in demo mode"
-                            else "Welcome back to Kolab"
-                        )
+                        showNotification("Welcome back to Kolab")
                     }
                     .onFailure { e ->
                         val msg = when {
@@ -255,6 +285,7 @@ class KolabViewModel(
             try {
                 repository.register(name.ifBlank { "Kolab Creator" }, email, pass)
                     .onSuccess { user ->
+                        _isGuestMode.value = false
                         _currentUserName.value = user.name.ifBlank { name.ifBlank { "Kolab Creator" } }
                         _currentUserEmail.value = user.email
                         _authStep.value = AuthStep.ACCOUNT_CREATED_SUCCESS
@@ -279,6 +310,7 @@ class KolabViewModel(
         viewModelScope.launch {
             repository.socialExchange(provider, code, state)
                 .onSuccess { user ->
+                    _isGuestMode.value = false
                     _currentUserName.value = user.name.ifBlank { "Kolab Creator" }
                     _currentUserEmail.value = user.email
                     _authStep.value = AuthStep.AUTHENTICATED
@@ -339,6 +371,9 @@ class KolabViewModel(
 
     fun signOut() {
         viewModelScope.launch { repository.logout() }
+        _isGuestMode.value = false
+        _currentUserName.value = ""
+        _currentUserEmail.value = ""
         _authStep.value = AuthStep.LOGIN
         _currentTab.value = NavigationTab.HOME
     }
@@ -354,6 +389,9 @@ class KolabViewModel(
                 showNotification(it.message ?: "Could not delete your account. Please try again.")
             }
             if (result.isSuccess) {
+                _isGuestMode.value = false
+                _currentUserName.value = ""
+                _currentUserEmail.value = ""
                 _authStep.value = AuthStep.LOGIN
                 _currentTab.value = NavigationTab.HOME
                 showNotification("Your account has been deleted.")
@@ -364,6 +402,7 @@ class KolabViewModel(
     // Tab Navigation
     fun selectTab(tab: NavigationTab) {
         if (tab == NavigationTab.CREATE) {
+            if (!requireAccount("create a collaboration")) return
             _showCreateCollabSheet.value = true
         } else {
             _currentTab.value = tab
@@ -437,6 +476,7 @@ class KolabViewModel(
     }
 
     fun toggleFollow(creativeId: String, name: String) {
+        if (!requireAccount("follow creatives")) return
         val currentlyFollowing = _followingIds.value.contains(creativeId)
         val shouldFollow = !currentlyFollowing
         _followingIds.update { if (shouldFollow) it + creativeId else it - creativeId }
@@ -470,15 +510,18 @@ class KolabViewModel(
     }
 
     fun toggleLike(postId: String) {
+        if (!requireAccount("like posts")) return
         repository.toggleLike(postId)
     }
 
     fun toggleCheckIn(hotspotId: String) {
+        if (!requireAccount("check in at hotspots")) return
         repository.toggleCheckIn(hotspotId)
         showNotification("You're in! Check-in updated.")
     }
 
     fun openCollabRequest(creative: CreativeProfile) {
+        if (!requireAccount("send collaboration requests")) return
         _collabTargetCreative.value = creative
     }
 
@@ -487,6 +530,7 @@ class KolabViewModel(
     }
 
     fun openCreateSheet() {
+        if (!requireAccount("create a post or collaboration")) return
         _showCreateCollabSheet.value = true
     }
 
@@ -495,6 +539,7 @@ class KolabViewModel(
     }
 
     fun openWithdrawDialog() {
+        if (!requireAccount("withdraw funds")) return
         _showWithdrawDialog.value = true
     }
 
@@ -503,12 +548,17 @@ class KolabViewModel(
     }
 
     fun submitCollabRequest(request: CollabRequest) {
+        if (!requireAccount("send collaboration requests")) return
         _collabTargetCreative.value?.let { target ->
             val amount = request.budgetZar
                 .replace("R", "")
                 .replace(",", "")
                 .replace(" ", "")
                 .toDoubleOrNull() ?: 0.0
+            if (amount <= 0.0) {
+                showNotification("Enter a budget for this collaboration")
+                return
+            }
             repository.createDeal(
                 creatorId = target.id,
                 description = listOfNotNull(
@@ -524,6 +574,7 @@ class KolabViewModel(
     }
 
     fun createNewPost(author: String, location: String, description: String, imageUrl: String, isStudio: Boolean) {
+        if (!requireAccount("publish a post")) return
         repository.addPost(author, location, description, imageUrl, isStudio)
         _showCreateCollabSheet.value = false
         _currentTab.value = NavigationTab.HOME
@@ -531,11 +582,13 @@ class KolabViewModel(
     }
 
     fun addPortfolioImage(url: String) {
+        if (!requireAccount("add portfolio work")) return
         repository.addPortfolioImage(url)
         showNotification("New project added to portfolio grid")
     }
 
     fun withdrawFunds(amount: Double) {
+        if (!requireAccount("withdraw funds")) return
         if (_withdrawBusy.value) return
         _withdrawBusy.value = true
         viewModelScope.launch {

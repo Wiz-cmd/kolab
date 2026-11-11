@@ -76,7 +76,9 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import com.example.data.ActiveDeal
+import com.example.ui.AuthStep
 import com.example.ui.KolabViewModel
+import com.example.ui.NavigationTab
 import com.example.ui.ProfileSubTab
 import com.example.ui.components.KolabPortfolioGridSkeleton
 import com.example.ui.components.ShimmerBlock
@@ -110,7 +112,13 @@ fun ProfileScreen(
     val portfolioLoading by viewModel.portfolioLoading.collectAsState()
     val showWithdrawDialog by viewModel.showWithdrawDialog.collectAsState()
     val userName by viewModel.currentUserName.collectAsState()
+    val isGuest by viewModel.isGuestMode.collectAsState()
     var showSecurity by remember { mutableStateOf(false) }
+
+    if (isGuest) {
+        GuestProfileScreen(viewModel)
+        return
+    }
 
     Box(
         modifier = Modifier
@@ -892,6 +900,148 @@ private fun MyStudioView(
 }
 
 private val DangerRed = Color(0xFFE5484D)
+
+@Composable
+private fun GuestProfileScreen(viewModel: KolabViewModel) {
+    val context = LocalContext.current
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Transparent)
+            .statusBarsPadding()
+            .testTag("guest_profile"),
+        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 28.dp, bottom = 32.dp)
+    ) {
+        item {
+            Text(
+                text = "Guest",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = PureWhite
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "You're browsing Kolab without an account. Sign in to book creatives, message people and manage your work.",
+                fontSize = 14.sp,
+                color = TextSecondary,
+                lineHeight = 20.sp
+            )
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = { viewModel.setAuthStep(AuthStep.LOGIN) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .testTag("guest_sign_in_button"),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PureWhite)
+            ) {
+                Text("Sign in", color = PureBlack, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = { viewModel.setAuthStep(AuthStep.SIGN_UP) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .testTag("guest_create_account_button"),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = SurfaceContainerHigh)
+            ) {
+                Text("Create an account", color = PureWhite, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+            }
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(28.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(CardBackground)
+                    .border(1.dp, DividerBorder, RoundedCornerShape(14.dp))
+                    .padding(18.dp)
+            ) {
+                Text(
+                    text = "With an account you can",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PureWhite
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                GuestBenefit("Send collaboration requests and book creatives")
+                GuestBenefit("Chat securely and track deals and payments")
+                GuestBenefit("Publish work, follow creatives and check in at hotspots")
+            }
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(20.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(CardBackground)
+                    .border(1.dp, DividerBorder, RoundedCornerShape(14.dp))
+            ) {
+                LegalRow(
+                    icon = Icons.Default.Lock,
+                    label = "Privacy Policy",
+                    onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_POLICY_URL)))
+                    }
+                )
+                HorizontalDivider(color = DividerBorder)
+                LegalRow(
+                    icon = Icons.Default.Description,
+                    label = "Terms of Service",
+                    onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(TERMS_OF_SERVICE_URL)))
+                    }
+                )
+            }
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(20.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable { viewModel.selectTab(NavigationTab.HOME) }
+                    .padding(14.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Keep browsing",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextSecondary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GuestBenefit(text: String) {
+    Row(
+        modifier = Modifier.padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.CheckCircle,
+            contentDescription = null,
+            tint = TrendGreen,
+            modifier = Modifier.size(15.dp)
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(text = text, fontSize = 13.sp, color = TextSecondary)
+    }
+}
 
 @Composable
 private fun LegalRow(

@@ -16,18 +16,28 @@ class TokenManager(context: Context) {
         private const val KEY_USER_ROLE = "user_role"
         private const val KEY_USER_AVATAR = "user_avatar"
         private const val KEY_USER_PUBLIC_KEY = "user_public_key"
-        private const val KEY_DEMO_MODE = "demo_mode"
+        private const val KEY_GUEST_MODE = "guest_mode"
 
-        private const val DEMO_ACCESS_TOKEN = "demo.access.token"
-        private const val DEMO_REFRESH_TOKEN = "demo.refresh.token"
+        private const val LEGACY_KEY_DEMO_MODE = "demo_mode"
     }
 
     @Volatile
     private var accessTokenMemory: String? = null
 
+    init {
+        // Users upgrading from the old offline demo must not stay signed in
+        // with a synthetic token that the real API rejects.
+        if (prefs.getBoolean(LEGACY_KEY_DEMO_MODE, false)) {
+            prefs.edit().clear().apply()
+        }
+    }
+
     fun saveTokens(accessToken: String, refreshToken: String) {
         accessTokenMemory = accessToken
-        prefs.edit().putString(KEY_REFRESH_TOKEN, refreshToken).apply()
+        prefs.edit()
+            .putString(KEY_REFRESH_TOKEN, refreshToken)
+            .remove(KEY_GUEST_MODE)
+            .apply()
     }
 
     fun getAccessToken(): String? = accessTokenMemory
@@ -50,22 +60,22 @@ class TokenManager(context: Context) {
     fun getUserRole(): String? = prefs.getString(KEY_USER_ROLE, null)
     fun getUserAvatar(): String? = prefs.getString(KEY_USER_AVATAR, null)
 
-    // ── Offline demo session ────────────────────────────────────────────
-    // A demo session stores a synthetic refresh token + profile so the app's
-    // normal "am I logged in?" checks and session restore keep working with
-    // no backend at all.
+    // ── Guest session ───────────────────────────────────────────────────
+    // Guests can browse public content with no account. They have no tokens,
+    // so every protected API call is rejected until they sign in.
 
-    fun isDemoMode(): Boolean = prefs.getBoolean(KEY_DEMO_MODE, false)
+    fun isGuestMode(): Boolean = prefs.getBoolean(KEY_GUEST_MODE, false)
 
-    fun enterDemoMode(id: String, name: String, email: String, role: String = "CREATOR") {
-        accessTokenMemory = DEMO_ACCESS_TOKEN
+    fun enterGuestMode() {
+        accessTokenMemory = null
         prefs.edit()
-            .putBoolean(KEY_DEMO_MODE, true)
-            .putString(KEY_REFRESH_TOKEN, DEMO_REFRESH_TOKEN)
-            .putString(KEY_USER_ID, id)
-            .putString(KEY_USER_NAME, name)
-            .putString(KEY_USER_EMAIL, email)
-            .putString(KEY_USER_ROLE, role)
+            .putBoolean(KEY_GUEST_MODE, true)
+            .remove(KEY_REFRESH_TOKEN)
+            .remove(KEY_USER_ID)
+            .remove(KEY_USER_NAME)
+            .remove(KEY_USER_EMAIL)
+            .remove(KEY_USER_ROLE)
+            .remove(KEY_USER_AVATAR)
             .apply()
     }
 
@@ -80,7 +90,7 @@ class TokenManager(context: Context) {
         accessTokenMemory = null
         prefs.edit()
             .remove(KEY_REFRESH_TOKEN)
-            .remove(KEY_DEMO_MODE)
+            .remove(KEY_GUEST_MODE)
             .apply()
     }
 

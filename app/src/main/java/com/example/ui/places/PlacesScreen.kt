@@ -326,6 +326,30 @@ fun PlacesScreen(viewModel: KolabViewModel) {
                             )
                         }
 
+                        if (!hotspotsLoading && hotspots.isEmpty()) {
+                            item {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 40.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "No hotspots here yet",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = PureWhite
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = "Try another city or check back soon.",
+                                        fontSize = 12.sp,
+                                        color = TextSecondary
+                                    )
+                                }
+                            }
+                        }
+
                         // Provincial Leaderboard Section
                         item {
                             LeaderboardSection(leaderboard = leaderboard)
@@ -392,7 +416,7 @@ private fun HotspotCard(
                         )
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
-                            text = "${hotspot.rating}",
+                            text = if (hotspot.rating > 0.0) "${hotspot.rating}" else "New",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = PureWhite

@@ -64,7 +64,7 @@ fun CollabRequestBottomSheet(
     var projectTitle by remember { mutableStateOf("") }
     var roleRequired by remember { mutableStateOf(creative.role) }
     var proposedDate by remember { mutableStateOf("This Weekend") }
-    var budget by remember { mutableStateOf(creative.rate) }
+    var budget by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
 
     ModalBottomSheet(
@@ -189,6 +189,7 @@ fun CollabRequestBottomSheet(
                     OutlinedTextField(
                         value = budget,
                         onValueChange = { budget = it },
+                        placeholder = { Text("e.g. 2500", color = TextMuted) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(

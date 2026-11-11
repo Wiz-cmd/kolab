@@ -266,7 +266,7 @@ fun LoginScreen(viewModel: KolabViewModel) {
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Explore demo — drop straight into the offline sample session
+                        // Continue as guest — browse the live public feed without an account
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -274,8 +274,8 @@ fun LoginScreen(viewModel: KolabViewModel) {
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(Color.Transparent)
                                 .border(1.dp, DividerBorder, RoundedCornerShape(14.dp))
-                                .clickable { viewModel.enterDemoMode() }
-                                .testTag("explore_demo_button"),
+                                .clickable { viewModel.continueAsGuest() }
+                                .testTag("continue_as_guest_button"),
                             contentAlignment = Alignment.Center
                         ) {
                             Row(
@@ -283,14 +283,14 @@ fun LoginScreen(viewModel: KolabViewModel) {
                                 horizontalArrangement = Arrangement.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.PlayArrow,
+                                    imageVector = Icons.Default.Person,
                                     contentDescription = null,
                                     tint = PureWhite,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Explore the demo",
+                                    text = "Continue as guest",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = PureWhite
@@ -300,7 +300,7 @@ fun LoginScreen(viewModel: KolabViewModel) {
 
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Browse sample creators & hotspots — no account needed",
+                            text = "Browse creators, hotspots and the feed without an account",
                             fontSize = 11.sp,
                             color = TextSecondary,
                             textAlign = TextAlign.Center,

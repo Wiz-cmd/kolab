@@ -342,8 +342,8 @@ Protocol per install:
 - Enable Firebase **App Check** (deps are commented in `libs.versions.toml`) to
   block calls from non-app clients; add `google-services.json`.
 - Consider adding a wallet ledger module on the backend — the in-app balance is
-  currently a demo value (`R12 450.00`), withdrawals are real requests to
-  `/withdrawals` but settle via the admin UI.
+  read from the live account, and withdrawals are real requests to
+  `/withdrawals` that settle via the admin UI.
 - Review push payloads: FCM `message.data` should not contain message bodies
   for E2EE channels.
 
@@ -362,7 +362,9 @@ Protocol per install:
 ## 9. Testing
 
 - Unit tests: `./gradlew testDebugUnitTest` (Robolectric, JVM-only — no
-  emulator). Existing: `KolabAppRobolectricTest` (app name + BASE_URL smoke).
+  emulator). Existing: `KolabAppRobolectricTest` (app name + BASE_URL smoke),
+  `GuestSessionTest` (guest sessions never look signed in) and
+  `ManifestSafetyTest` (Sentry auto-init stays off).
 - `roborazzi` (Compose screenshot testing) test deps + plugin are present for
   future visual regression tests.
 - Manual E2EE test: two emulators, two accounts in the same deal; confirm the
@@ -386,8 +388,10 @@ Protocol per install:
 - Google/Apple sign-in not implemented (no backend endpoints).
 - IG/X social login inert until real provider credentials are set (see §6.2).
 - FCM silent without `google-services.json`.
-- Wallet balance is demo currency; real funding flows (PayFast/Ozow webhooks)
-  exist server-side but aren't driven by the app UI.
+- Wallet balance comes from the live account; real funding flows
+  (PayFast/Ozow webhooks) exist server-side but aren't driven by the app UI.
+- Guest mode browses public content only; booking, posting and messaging require
+  an account.
 - No offline cache/Room (local persistence is prefs + encrypted prefs only).
 - Release builds are currently **not minified** (see §7.7).
 
