@@ -17,6 +17,13 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Kolab">
+        <!-- Sentry is initialised manually in KolabApplication, and only when a
+             DSN is configured. Without this, the bundled SentryInitProvider runs
+             first and crashes the process with "DSN is required" on every launch
+             when SENTRY_DSN is empty. -->
+        <meta-data
+            android:name="io.sentry.auto-init"
+            android:value="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
