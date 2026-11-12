@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -17,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,14 +42,12 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.data.CollabRequest
 import com.example.data.CreativeProfile
-import com.example.ui.theme.CardBackground
 import com.example.ui.theme.DarkSurface
 import com.example.ui.theme.DividerBorder
 import com.example.ui.theme.PureBlack
 import com.example.ui.theme.PureWhite
 import com.example.ui.theme.SurfaceContainerHigh
 import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -86,15 +84,29 @@ fun CollabRequestBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    AsyncImage(
-                        model = creative.imageUrl,
-                        contentDescription = creative.name,
-                        contentScale = ContentScale.Crop,
+                    Box(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(CircleShape)
-                            .border(1.dp, DividerBorder, CircleShape)
-                    )
+                            .background(SurfaceContainerHigh)
+                            .border(1.dp, DividerBorder, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = creative.name.trim().take(1).uppercase().ifBlank { "?" },
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PureWhite
+                        )
+                        if (creative.imageUrl.isNotBlank()) {
+                            AsyncImage(
+                                model = creative.imageUrl,
+                                contentDescription = creative.name,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(

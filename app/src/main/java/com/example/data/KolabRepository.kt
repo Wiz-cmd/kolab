@@ -134,6 +134,15 @@ class KolabRepository(
         }
     }
 
+    suspend fun requestPasswordReset(email: String): Result<Unit> = withContext(Dispatchers.IO) {
+        if (email.isBlank()) return@withContext Result.failure(Exception("Enter your email address first"))
+        when (val r = safeCall { api.requestPasswordReset(PasswordResetRequest(email.trim())) }) {
+            is ApiResult.Success -> Result.success(Unit)
+            is ApiResult.Error -> Result.failure(Exception(r.message))
+            is ApiResult.Exception -> Result.failure(r.throwable)
+        }
+    }
+
     suspend fun getMe(): Result<UiUser> = withContext(Dispatchers.IO) {
         when (val r = safeCall { api.getMe() }) {
             is ApiResult.Success -> {
@@ -670,7 +679,7 @@ class KolabRepository(
         category = prettifyRole(role),
         rate = "Rate on request",
         rating = 0.0,
-        imageUrl = avatar?.takeIf { it.isNotBlank() } ?: FALLBACK_AVATAR,
+        imageUrl = avatar.orEmpty(),
         followers = formatAbbrev(followersCount),
         bio = bio?.takeIf { it.isNotBlank() } ?: "",
         collabsCount = postsCount
@@ -694,7 +703,7 @@ class KolabRepository(
         location = listOfNotNull(city, province).joinToString(" • "),
         rating = 0.0,
         creatorTip = description?.takeIf { it.isNotBlank() } ?: "Creative hotspot in ${city.ifBlank { "South Africa" }}.",
-        imageUrl = image ?: FALLBACK_HOTSPOT,
+        imageUrl = image.orEmpty(),
         checkInsCount = checkInsCount,
         isCheckedIn = false,
         category = category.uppercase()
@@ -780,8 +789,6 @@ class KolabRepository(
 
     companion object {
         private const val DEFAULT_LOCATION = "Johannesburg, South Africa"
-        private const val FALLBACK_AVATAR = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=80"
-        private const val FALLBACK_HOTSPOT = "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&q=80"
         private const val SEARCH_SEPARATOR = "\u0001"
     }
 }

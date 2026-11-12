@@ -131,10 +131,6 @@ class ChatViewModel(
         }
     }
 
-    fun clearError() {
-        _state.update { it.copy(error = null) }
-    }
-
     override fun onCleared() {
         super.onCleared()
         socketManager.disconnect()

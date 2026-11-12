@@ -1,10 +1,9 @@
-﻿package com.kolab.data.chat
+package com.kolab.data.chat
 
 import android.util.Log
 import com.kolab.data.TokenManager
 import io.socket.client.IO
 import io.socket.client.Socket
-import io.socket.emitter.Emitter
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow

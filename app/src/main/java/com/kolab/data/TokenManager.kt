@@ -57,8 +57,6 @@ class TokenManager(context: Context) {
     fun getUserId(): String? = prefs.getString(KEY_USER_ID, null)
     fun getUserName(): String? = prefs.getString(KEY_USER_NAME, null)
     fun getUserEmail(): String? = prefs.getString(KEY_USER_EMAIL, null)
-    fun getUserRole(): String? = prefs.getString(KEY_USER_ROLE, null)
-    fun getUserAvatar(): String? = prefs.getString(KEY_USER_AVATAR, null)
 
     // ── Guest session ───────────────────────────────────────────────────
     // Guests can browse public content with no account. They have no tokens,

@@ -100,9 +100,6 @@ class KolabViewModel(
     private val _selectedHotspotCategory = MutableStateFlow("ALL")
     val selectedHotspotCategory: StateFlow<String> = _selectedHotspotCategory.asStateFlow()
 
-    private val _isMapViewEnabled = MutableStateFlow(false)
-    val isMapViewEnabled: StateFlow<Boolean> = _isMapViewEnabled.asStateFlow()
-
     // Search
     private val _searchResults = MutableStateFlow(SearchResults())
     val searchResults: StateFlow<SearchResults> = _searchResults.asStateFlow()
@@ -303,6 +300,18 @@ class KolabViewModel(
             } finally {
                 _isLoggingIn.value = false
             }
+        }
+    }
+
+    fun requestPasswordReset(email: String) {
+        if (email.isBlank()) {
+            showNotification("Enter your email address first")
+            return
+        }
+        viewModelScope.launch {
+            repository.requestPasswordReset(email)
+                .onSuccess { showNotification("Password reset instructions sent to your email") }
+                .onFailure { showNotification(it.message ?: "Unable to send reset instructions") }
         }
     }
 
@@ -509,10 +518,6 @@ class KolabViewModel(
 
     fun setHotspotCategory(category: String) {
         _selectedHotspotCategory.value = category
-    }
-
-    fun toggleMapView() {
-        _isMapViewEnabled.value = !_isMapViewEnabled.value
     }
 
     fun toggleLike(postId: String) {

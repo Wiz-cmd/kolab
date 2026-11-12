@@ -31,7 +31,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Handshake
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
@@ -385,21 +384,35 @@ private fun CreativeCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                SubcomposeAsyncImage(
-                    model = creative.imageUrl,
-                    contentDescription = creative.name,
-                    contentScale = ContentScale.Crop,
+                Box(
                     modifier = Modifier
                         .size(72.dp)
                         .clip(RoundedCornerShape(16.dp))
+                        .background(SurfaceContainerHigh)
                         .border(1.dp, DividerBorder, RoundedCornerShape(16.dp)),
-                    loading = {
-                        ShimmerBlock(
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = creative.name.trim().take(1).uppercase().ifBlank { "?" },
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PureWhite
+                    )
+                    if (creative.imageUrl.isNotBlank()) {
+                        SubcomposeAsyncImage(
+                            model = creative.imageUrl,
+                            contentDescription = creative.name,
+                            contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize(),
-                            shape = RoundedCornerShape(16.dp)
+                            loading = {
+                                ShimmerBlock(
+                                    modifier = Modifier.fillMaxSize(),
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                            }
                         )
                     }
-                )
+                }
 
                 Spacer(modifier = Modifier.width(14.dp))
 
@@ -547,21 +560,35 @@ private fun CreativeDetailBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    SubcomposeAsyncImage(
-                        model = creative.imageUrl,
-                        contentDescription = creative.name,
-                        contentScale = ContentScale.Crop,
+                    Box(
                         modifier = Modifier
                             .size(56.dp)
                             .clip(CircleShape)
+                            .background(SurfaceContainerHigh)
                             .border(1.dp, DividerBorder, CircleShape),
-                        loading = {
-                            ShimmerBlock(
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = creative.name.trim().take(1).uppercase().ifBlank { "?" },
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PureWhite
+                        )
+                        if (creative.imageUrl.isNotBlank()) {
+                            SubcomposeAsyncImage(
+                                model = creative.imageUrl,
+                                contentDescription = creative.name,
+                                contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize(),
-                                shape = CircleShape
+                                loading = {
+                                    ShimmerBlock(
+                                        modifier = Modifier.fillMaxSize(),
+                                        shape = CircleShape
+                                    )
+                                }
                             )
                         }
-                    )
+                    }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
@@ -858,21 +885,35 @@ private fun SearchResultUserRow(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SubcomposeAsyncImage(
-                model = creative.imageUrl,
-                contentDescription = creative.name,
-                contentScale = ContentScale.Crop,
+            Box(
                 modifier = Modifier
                     .size(52.dp)
                     .clip(CircleShape)
+                    .background(SurfaceContainerHigh)
                     .border(1.dp, DividerBorder, CircleShape),
-                loading = {
-                    ShimmerBlock(
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = creative.name.trim().take(1).uppercase().ifBlank { "?" },
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PureWhite
+                )
+                if (creative.imageUrl.isNotBlank()) {
+                    SubcomposeAsyncImage(
+                        model = creative.imageUrl,
+                        contentDescription = creative.name,
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
-                        shape = CircleShape
+                        loading = {
+                            ShimmerBlock(
+                                modifier = Modifier.fillMaxSize(),
+                                shape = CircleShape
+                            )
+                        }
                     )
                 }
-            )
+            }
 
             Spacer(modifier = Modifier.width(12.dp))
 

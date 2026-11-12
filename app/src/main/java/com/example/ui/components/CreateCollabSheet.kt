@@ -14,10 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddBox
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Domain
 import androidx.compose.material.icons.filled.Handshake
@@ -47,14 +45,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.KolabViewModel
-import com.example.ui.theme.CardBackground
 import com.example.ui.theme.DarkSurface
 import com.example.ui.theme.DividerBorder
 import com.example.ui.theme.PureBlack
 import com.example.ui.theme.PureWhite
 import com.example.ui.theme.SurfaceContainerHigh
 import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -143,7 +139,7 @@ fun CreateCollabSheet(
                 OutlinedTextField(
                     value = customImageUrl,
                     onValueChange = { customImageUrl = it },
-                    placeholder = { Text("https://images.unsplash.com/...", color = TextMuted) },
+                    placeholder = { Text("https://...", color = TextMuted) },
                     modifier = Modifier.fillMaxWidth().testTag("portfolio_image_url_input"),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -161,9 +157,13 @@ fun CreateCollabSheet(
 
                 Button(
                     onClick = {
-                        val img = if (customImageUrl.isNotBlank()) customImageUrl else "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&q=80"
-                        viewModel.addPortfolioImage(img)
-                        onDismiss()
+                        val img = customImageUrl.trim()
+                        if (img.isBlank()) {
+                            viewModel.showNotification("Add an image URL to publish portfolio work")
+                        } else {
+                            viewModel.addPortfolioImage(img)
+                            onDismiss()
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -243,24 +243,48 @@ fun CreateCollabSheet(
                     maxLines = 4
                 )
 
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = "Image URL (optional)",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PureWhite
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                OutlinedTextField(
+                    value = customImageUrl,
+                    onValueChange = { customImageUrl = it },
+                    placeholder = { Text("https://...", color = TextMuted) },
+                    modifier = Modifier.fillMaxWidth().testTag("create_post_image_url_input"),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = SurfaceContainerHigh,
+                        unfocusedContainerColor = SurfaceContainerHigh,
+                        focusedBorderColor = PureWhite,
+                        unfocusedBorderColor = DividerBorder,
+                        focusedTextColor = PureWhite,
+                        unfocusedTextColor = PureWhite
+                    ),
+                    singleLine = true
+                )
+
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
                     onClick = {
-                        val author = viewModel.currentUserName.value
-                        val isStudio = selectedMode == "studio_space"
-                        val sampleImg = if (isStudio) {
-                            "https://lh3.googleusercontent.com/aida-public/AB6AXuBMHILIDiYM6ubXnuiaYUJCSWANqjRcdDQ9nVj4nzezAy7kAIPqxthI2FYf177kCMoxHI6W24qjt6L2zVgtneKwZJbzZPhQ3PppXW4r_vwgjXVxc-Y_aR0l8uIBHhivFEf8F56AmGlhIWOCtrJ9Wl_9dPDp1Itcq_h4boVkGDCyHE76bX8e16rcKGzklTRX4NpYGLleVpma9NspvF0wSneS_KjW7mEAcobO4St9Vi06oPn2LBZ5X8yoSw"
+                        val text = description.trim()
+                        if (text.isBlank()) {
+                            viewModel.showNotification("Add a description before publishing")
                         } else {
-                            "https://lh3.googleusercontent.com/aida-public/AB6AXuCmEPvxSoMv6qUa5LCQDMZZ59iI32DhpnGMXEg3uVTgDJYubDHZ08-UKW7tjmjblYyyervsXds6-xiaY8i6guU6CkndKhQppRVm8I_lfgdaxRIkBbOrAVG9PSTGruyxExCZsmEvTElI8ZEjDT67IL603EdyZAdXlrFkelskjhzsyeQq-ai9M3nzIWY7-yJ5opy1EqW0H6nkPB7UKBFgi7dcLmYhDN9cH-SFIlLzb8TrVBVu-_3Et-ebDg"
+                            viewModel.createNewPost(
+                                author = viewModel.currentUserName.value,
+                                location = titleOrLocation.ifBlank { "Johannesburg" },
+                                description = text,
+                                imageUrl = customImageUrl.trim(),
+                                isStudio = selectedMode == "studio_space"
+                            )
                         }
-                        viewModel.createNewPost(
-                            author = author,
-                            location = titleOrLocation.ifBlank { "Johannesburg" },
-                            description = description.ifBlank { "Excited to collaborate with local creatives on this upcoming series." },
-                            imageUrl = sampleImg,
-                            isStudio = isStudio
-                        )
                     },
                     modifier = Modifier
                         .fillMaxWidth()

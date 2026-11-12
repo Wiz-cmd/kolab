@@ -26,29 +26,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.filled.MailOutline
-import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Straighten
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.AlertDialog
@@ -73,7 +61,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import com.example.data.ActiveDeal
 import com.example.ui.AuthStep
@@ -85,13 +72,11 @@ import com.example.ui.components.ShimmerBlock
 import com.example.ui.components.WithdrawDialog
 import com.example.ui.components.kolabClickable
 import com.example.ui.theme.CardBackground
-import com.example.ui.theme.DarkSurface
 import com.example.ui.theme.DividerBorder
 import com.example.ui.theme.PureBlack
 import com.example.ui.theme.PureWhite
 import com.example.ui.theme.StarGold
 import com.example.ui.theme.SurfaceContainerHigh
-import com.example.ui.theme.SurfaceContainerHighest
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
@@ -283,14 +268,11 @@ fun ProfileScreen(
                         onAddPortfolio = { viewModel.openCreateSheet() },
                         onSignOut = { viewModel.signOut() },
                         onDeleteAccount = { viewModel.deleteAccount() },
-                        onNotify = { viewModel.showNotification(it) },
                         onOpenChat = onOpenChat
                     )
                 } else {
                     PublicProfileView(
                         userName = userName,
-                        onBookNow = { viewModel.openCreateSheet() },
-                        onMessage = { viewModel.showNotification("Chat session started with $userName") },
                         portfolio = userPortfolio,
                         portfolioLoading = portfolioLoading
                     )
@@ -318,7 +300,6 @@ private fun MyStudioView(
     onAddPortfolio: () -> Unit,
     onSignOut: () -> Unit,
     onDeleteAccount: () -> Unit,
-    onNotify: (String) -> Unit,
     onOpenChat: (String) -> Unit
 ) {
     val context = LocalContext.current
@@ -337,15 +318,21 @@ private fun MyStudioView(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                AsyncImage(
-                    model = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80",
-                    contentDescription = userName,
-                    contentScale = ContentScale.Crop,
+                Box(
                     modifier = Modifier
                         .size(54.dp)
                         .clip(CircleShape)
-                        .border(1.5.dp, DividerBorder, CircleShape)
-                )
+                        .background(SurfaceContainerHigh)
+                        .border(1.5.dp, DividerBorder, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = userName.take(1).uppercase(),
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PureWhite
+                    )
+                }
                 Spacer(modifier = Modifier.width(14.dp))
                 Column {
                     Text(
@@ -375,29 +362,11 @@ private fun MyStudioView(
                     .testTag("studio_balance_card")
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Available Balance",
-                            fontSize = 13.sp,
-                            color = TextSecondary
-                        )
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(SurfaceContainerHigh)
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = "Next payout: Nov 15",
-                                fontSize = 11.sp,
-                                color = TextPrimary
-                            )
-                        }
-                    }
+                    Text(
+                        text = "Available Balance",
+                        fontSize = 13.sp,
+                        color = TextSecondary
+                    )
 
                     Spacer(modifier = Modifier.height(10.dp))
 
@@ -428,71 +397,6 @@ private fun MyStudioView(
                             fontWeight = FontWeight.Bold,
                             color = PureBlack
                         )
-                    }
-                }
-            }
-        }
-
-        // Analytics Row (Image 9.png)
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(CardBackground)
-                        .border(1.dp, DividerBorder, RoundedCornerShape(16.dp))
-                        .padding(16.dp)
-                ) {
-                    Column {
-                        Text(
-                            text = "Profile Views",
-                            fontSize = 12.sp,
-                            color = TextSecondary
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = "1.2k",
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PureWhite
-                        )
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(CardBackground)
-                        .border(1.dp, DividerBorder, RoundedCornerShape(16.dp))
-                        .padding(16.dp)
-                ) {
-                    Column {
-                        Text(
-                            text = "Engagement",
-                            fontSize = 12.sp,
-                            color = TextSecondary
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "+15%",
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TrendGreen
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(
-                                imageVector = Icons.Default.TrendingUp,
-                                contentDescription = "Trending",
-                                tint = TrendGreen,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
                     }
                 }
             }
@@ -601,78 +505,6 @@ private fun MyStudioView(
                                     )
                                 }
                             }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Quick Tools
-        item {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Text(
-                    text = "Quick Tools",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PureWhite
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(CardBackground)
-                            .border(1.dp, DividerBorder, RoundedCornerShape(14.dp))
-                            .clickable { onNotify("Rate card updated (ZAR 2,500/hr)") }
-                            .padding(14.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.LocalOffer,
-                                contentDescription = "Rates",
-                                tint = PureWhite,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "My Rates",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = PureWhite
-                            )
-                        }
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(CardBackground)
-                            .border(1.dp, DividerBorder, RoundedCornerShape(14.dp))
-                            .clickable { onNotify("Standard NDAs & Licensing contracts loaded") }
-                            .padding(14.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Description,
-                                contentDescription = "Contracts",
-                                tint = PureWhite,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Contract Templates",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = PureWhite
-                            )
                         }
                     }
                 }
@@ -1081,8 +913,6 @@ private fun LegalRow(
 @Composable
 private fun PublicProfileView(
     userName: String,
-    onBookNow: () -> Unit,
-    onMessage: () -> Unit,
     portfolio: List<String>,
     portfolioLoading: Boolean
 ) {
@@ -1093,7 +923,6 @@ private fun PublicProfileView(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Hero Card (Image 3.png)
         item {
             Box(
                 modifier = Modifier
@@ -1107,318 +936,38 @@ private fun PublicProfileView(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    AsyncImage(
-                        model = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80",
-                        contentDescription = userName,
-                        contentScale = ContentScale.Crop,
+                    Box(
                         modifier = Modifier
                             .size(88.dp)
                             .clip(CircleShape)
-                            .border(2.dp, PureWhite, CircleShape)
-                    )
+                            .background(SurfaceContainerHigh)
+                            .border(2.dp, PureWhite, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = userName.take(1).uppercase(),
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PureWhite
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(14.dp))
 
                     Text(
-                        text = "$userName 🇿🇦",
+                        text = userName,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = PureWhite
                     )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = "Fashion Model & Creative Director",
-                        fontSize = 13.sp,
-                        color = TextSecondary
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Stats Pill Row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "14.2K",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PureWhite
-                            )
-                            Text(
-                                text = "Followers",
-                                fontSize = 11.sp,
-                                color = TextSecondary
-                            )
-                        }
-
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "86",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PureWhite
-                            )
-                            Text(
-                                text = "Collabs",
-                                fontSize = 11.sp,
-                                color = TextSecondary
-                            )
-                        }
-
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "4.9 ★",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = StarGold
-                            )
-                            Text(
-                                text = "Rating",
-                                fontSize = 11.sp,
-                                color = TextSecondary
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // CTA Buttons (Image 3.png)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Button(
-                            onClick = onBookNow,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(46.dp)
-                                .testTag("book_now_button"),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = PureWhite,
-                                contentColor = PureBlack
-                            )
-                        ) {
-                            Text(
-                                text = "Book Now",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PureBlack
-                            )
-                        }
-
-                        Button(
-                            onClick = onMessage,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(46.dp)
-                                .testTag("message_button"),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = SurfaceContainerHigh,
-                                contentColor = PureWhite
-                            )
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.MailOutline,
-                                    contentDescription = "Message",
-                                    tint = PureWhite,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Message",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PureWhite
-                                )
-                            }
-                        }
-                    }
                 }
             }
         }
 
-        // Measurements Card (Image 3.png)
-        item {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(CardBackground)
-                    .border(1.dp, DividerBorder, RoundedCornerShape(20.dp))
-                    .padding(18.dp)
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Straighten,
-                            contentDescription = "Measurements",
-                            tint = PureWhite,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Measurements",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PureWhite
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        MeasurementItem(label = "Height", value = "178 cm / 5'10\"")
-                        MeasurementItem(label = "Bust", value = "84 cm / 33\"")
-                        MeasurementItem(label = "Waist", value = "61 cm / 24\"")
-                        MeasurementItem(label = "Hips", value = "89 cm / 35\"")
-                    }
-                }
-            }
-        }
-
-        // Availability & Rates Cards (Image 3.png)
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(CardBackground)
-                        .border(1.dp, DividerBorder, RoundedCornerShape(16.dp))
-                        .padding(16.dp)
-                ) {
-                    Column {
-                        Text(
-                            text = "Availability",
-                            fontSize = 12.sp,
-                            color = TextSecondary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(TrendGreen)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Open",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PureWhite
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Next: Oct 15",
-                            fontSize = 11.sp,
-                            color = TextMuted
-                        )
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(CardBackground)
-                        .border(1.dp, DividerBorder, RoundedCornerShape(16.dp))
-                        .padding(16.dp)
-                ) {
-                    Column {
-                        Text(
-                            text = "My Rates",
-                            fontSize = 12.sp,
-                            color = TextSecondary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "R 2,500",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PureWhite
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Hourly base rate",
-                            fontSize = 11.sp,
-                            color = TextMuted
-                        )
-                    }
-                }
-            }
-        }
-
-        // Reviews Card (Image 3.png)
-        item {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(CardBackground)
-                    .border(1.dp, DividerBorder, RoundedCornerShape(16.dp))
-                    .padding(16.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            text = "Verified Reviews (42)",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PureWhite
-                        )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            repeat(5) {
-                                Icon(
-                                    imageVector = Icons.Default.Star,
-                                    contentDescription = "Star",
-                                    tint = StarGold,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "4.9 / 5.0",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextPrimary
-                            )
-                        }
-                    }
-
-                    Icon(
-                        imageVector = Icons.Default.ArrowForward,
-                        contentDescription = "View all",
-                        tint = TextSecondary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-        }
-
-        // Recent Work 4-Grid (Image 3.png)
         item {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Recent Work",
+                    text = "Portfolio",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = PureWhite
@@ -1428,59 +977,49 @@ private fun PublicProfileView(
 
                 if (portfolioLoading && portfolio.isEmpty()) {
                     KolabPortfolioGridSkeleton(rows = 2)
+                } else if (portfolio.isEmpty()) {
+                    Text(
+                        text = "No portfolio work yet.",
+                        fontSize = 13.sp,
+                        color = TextSecondary
+                    )
                 } else {
-                    Row(
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        portfolio.take(2).forEach { img ->
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .aspectRatio(1f)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(SurfaceContainerHigh)
+                        portfolio.chunked(3).forEach { rowItems ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                SubcomposeAsyncImage(
-                                    model = img,
-                                    contentDescription = "Recent work",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize(),
-                                    loading = {
-                                        ShimmerBlock(
+                                rowItems.forEach { img ->
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .aspectRatio(1f)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(SurfaceContainerHigh)
+                                    ) {
+                                        SubcomposeAsyncImage(
+                                            model = img,
+                                            contentDescription = "Portfolio item",
+                                            contentScale = ContentScale.Crop,
                                             modifier = Modifier.fillMaxSize(),
-                                            shape = RoundedCornerShape(0.dp)
+                                            loading = {
+                                                ShimmerBlock(
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    shape = RoundedCornerShape(0.dp)
+                                                )
+                                            }
                                         )
                                     }
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        portfolio.drop(2).take(2).forEach { img ->
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .aspectRatio(1f)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(SurfaceContainerHigh)
-                            ) {
-                                SubcomposeAsyncImage(
-                                    model = img,
-                                    contentDescription = "Recent work",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize(),
-                                    loading = {
-                                        ShimmerBlock(
-                                            modifier = Modifier.fillMaxSize(),
-                                            shape = RoundedCornerShape(0.dp)
-                                        )
+                                }
+                                if (rowItems.size < 3) {
+                                    repeat(3 - rowItems.size) {
+                                        Box(modifier = Modifier.weight(1f).aspectRatio(1f))
                                     }
-                                )
+                                }
                             }
                         }
                     }
@@ -1491,23 +1030,5 @@ private fun PublicProfileView(
         item {
             Spacer(modifier = Modifier.height(72.dp))
         }
-    }
-}
-
-@Composable
-private fun MeasurementItem(label: String, value: String) {
-    Column {
-        Text(
-            text = label,
-            fontSize = 11.sp,
-            color = TextSecondary
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = value,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = PureWhite
-        )
     }
 }

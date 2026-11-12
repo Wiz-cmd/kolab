@@ -30,15 +30,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material.icons.filled.TrendingFlat
@@ -69,7 +64,6 @@ import com.example.data.LeaderboardItem
 import com.example.data.TrendDirection
 import com.example.ui.KolabViewModel
 import com.example.ui.theme.CardBackground
-import com.example.ui.theme.DarkSurface
 import com.example.ui.theme.DividerBorder
 import com.example.ui.components.KolabHotspotCardSkeleton
 import com.example.ui.components.ShimmerBlock
@@ -88,7 +82,6 @@ fun PlacesScreen(viewModel: KolabViewModel) {
     val hotspotsLoading by viewModel.hotspotsLoading.collectAsState()
     val leaderboard by viewModel.leaderboard.collectAsState()
     val selectedCategory by viewModel.selectedHotspotCategory.collectAsState()
-    val isMapView by viewModel.isMapViewEnabled.collectAsState()
 
     val categories = listOf(
         "ALL",
@@ -133,75 +126,6 @@ fun PlacesScreen(viewModel: KolabViewModel) {
                         )
                     }
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        // Map Toggle Pill (Glassmorphic)
-                        val mapBgBrush = if (isMapView) {
-                            androidx.compose.ui.graphics.Brush.linearGradient(
-                                colors = listOf(PureWhite, Color(0xFFE8E8E8))
-                            )
-                        } else {
-                            androidx.compose.ui.graphics.Brush.linearGradient(
-                                colors = listOf(Color(0x35FFFFFF), Color(0x15FFFFFF))
-                            )
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(mapBgBrush)
-                                .border(
-                                    1.dp,
-                                    if (isMapView) Color.White else Color(0x35FFFFFF),
-                                    RoundedCornerShape(18.dp)
-                                )
-                                .clickable { viewModel.toggleMapView() }
-                                .padding(horizontal = 14.dp, vertical = 7.dp)
-                                .testTag("map_view_toggle")
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Map,
-                                    contentDescription = "Map",
-                                    tint = if (isMapView) PureBlack else PureWhite,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(5.dp))
-                                Text(
-                                    text = if (isMapView) "LIST" else "MAP",
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isMapView) PureBlack else PureWhite
-                                )
-                            }
-                        }
-
-                        // Search Icon (Glassmorphic)
-                        Box(
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    androidx.compose.ui.graphics.Brush.linearGradient(
-                                        colors = listOf(Color(0x30FFFFFF), Color(0x10FFFFFF))
-                                    )
-                                )
-                                .border(1.dp, Color(0x30FFFFFF), CircleShape)
-                                .clickable {
-                                    viewModel.showNotification("Searching creative shoot hotspots...")
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "Search",
-                                tint = PureWhite,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
                 }
             }
 
@@ -259,56 +183,6 @@ fun PlacesScreen(viewModel: KolabViewModel) {
                 }
             }
 
-            if (isMapView) {
-                // Interactive Simulated Map View
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .padding(16.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(CardBackground)
-                        .border(1.dp, DividerBorder, RoundedCornerShape(20.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(24.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Map,
-                            contentDescription = "Map view",
-                            tint = PureWhite,
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "South Africa Creator Heatmap",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PureWhite
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Johannesburg (38 spots) • Cape Town (52 spots)",
-                            fontSize = 12.sp,
-                            color = TextSecondary
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(
-                            onClick = { viewModel.toggleMapView() },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = PureWhite,
-                                contentColor = PureBlack
-                            ),
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Text("Switch to List View", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            } else {
-                // Hotspots and Leaderboard List
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -363,7 +237,6 @@ fun PlacesScreen(viewModel: KolabViewModel) {
             }
         }
     }
-}
 
 @Composable
 private fun HotspotCard(
@@ -384,19 +257,38 @@ private fun HotspotCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(180.dp)
+                    .background(SurfaceContainerHigh),
+                contentAlignment = Alignment.Center
             ) {
-                SubcomposeAsyncImage(
-                    model = hotspot.imageUrl,
-                    contentDescription = hotspot.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                    loading = {
-                        ShimmerBlock(
-                            modifier = Modifier.fillMaxSize(),
-                            shape = RoundedCornerShape(0.dp)
-                        )
-                    }
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = null,
+                        tint = TextMuted,
+                        modifier = Modifier.size(34.dp)
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = hotspot.name,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextMuted
+                    )
+                }
+                if (hotspot.imageUrl.isNotBlank()) {
+                    SubcomposeAsyncImage(
+                        model = hotspot.imageUrl,
+                        contentDescription = hotspot.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                        loading = {
+                            ShimmerBlock(
+                                modifier = Modifier.fillMaxSize(),
+                                shape = RoundedCornerShape(0.dp)
+                            )
+                        }
+                    )
+                }
 
                 // Rating overlay badge
                 Box(
@@ -459,7 +351,7 @@ private fun HotspotCard(
                         }
                     }
 
-                    // Check-in button — a small "stamp" response when it flips on
+                    // Check-in button - a small "stamp" response when it flips on
                     val checkedIn = hotspot.isCheckedIn
                     val checkPop = remember { Animatable(1f) }
                     LaunchedEffect(checkedIn) {

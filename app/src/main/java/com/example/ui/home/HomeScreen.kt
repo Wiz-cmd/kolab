@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,10 +27,8 @@ import androidx.compose.material.icons.filled.Handshake
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -63,12 +60,10 @@ import com.example.ui.components.LocationPickerDialog
 import com.example.ui.components.ShimmerBlock
 import com.example.ui.components.kolabClickable
 import com.example.ui.theme.CardBackground
-import com.example.ui.theme.DarkSurface
 import com.example.ui.theme.DividerBorder
 import com.example.ui.theme.PureBlack
 import com.example.ui.theme.PureWhite
 import com.example.ui.theme.SurfaceContainerHigh
-import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 
@@ -152,10 +147,7 @@ fun HomeScreen(viewModel: KolabViewModel) {
                         FeedPostCard(
                             post = post,
                             onLike = { viewModel.toggleLike(post.id) },
-                            onCollab = {
-                                viewModel.showNotification("Connected with ${post.author}. Collab pitch opened.")
-                                viewModel.openCreateSheet()
-                            }
+                            onCollab = { viewModel.selectTab(NavigationTab.DISCOVER) }
                         )
                     }
                 }
@@ -445,37 +437,39 @@ private fun FeedPostCard(
             }
 
             // Media Image with 16:10 ratio & gradient overlay
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(240.dp)
-            ) {
-                SubcomposeAsyncImage(
-                    model = post.imageUrl,
-                    contentDescription = post.description,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                    loading = {
-                        ShimmerBlock(
-                            modifier = Modifier.fillMaxSize(),
-                            shape = RoundedCornerShape(0.dp)
-                        )
-                    }
-                )
-                // Bottom subtle gradient
+            if (post.imageUrl.isNotBlank()) {
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color.Black.copy(alpha = 0.6f)
-                                ),
-                                startY = 100f
+                        .fillMaxWidth()
+                        .height(240.dp)
+                ) {
+                    SubcomposeAsyncImage(
+                        model = post.imageUrl,
+                        contentDescription = post.description,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                        loading = {
+                            ShimmerBlock(
+                                modifier = Modifier.fillMaxSize(),
+                                shape = RoundedCornerShape(0.dp)
                             )
-                        )
-                )
+                        }
+                    )
+                    // Bottom subtle gradient
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        Color.Black.copy(alpha = 0.6f)
+                                    ),
+                                    startY = 100f
+                                )
+                            )
+                    )
+                }
             }
 
             // Description and actions
