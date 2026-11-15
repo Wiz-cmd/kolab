@@ -21,12 +21,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddBox
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Handshake
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -43,6 +46,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -59,6 +63,8 @@ import com.example.ui.components.KolabTopBar
 import com.example.ui.components.LocationPickerDialog
 import com.example.ui.components.ShimmerBlock
 import com.example.ui.components.kolabClickable
+import com.example.ui.frames.FramesRail
+import com.example.ui.frames.shareFrame
 import com.example.ui.theme.CardBackground
 import com.example.ui.theme.DividerBorder
 import com.example.ui.theme.PureBlack
@@ -74,6 +80,8 @@ fun HomeScreen(viewModel: KolabViewModel) {
     val currentLocation by viewModel.currentLocation.collectAsState()
     val feedMode by viewModel.feedMode.collectAsState()
     var showLocationPicker by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val frames = remember(feedPosts) { feedPosts.filter { it.hasMedia } }
 
     Box(
         modifier = Modifier
@@ -97,11 +105,22 @@ fun HomeScreen(viewModel: KolabViewModel) {
                 // Bento Quick Actions (2x2 Grid)
                 item {
                     BentoActionsGrid(
-                        onNewPost = { viewModel.openCreateSheet() },
+                        onNewFrame = { viewModel.openFrameCamera() },
                         onFindCollab = { viewModel.selectTab(NavigationTab.DISCOVER) },
                         onHotspots = { viewModel.selectTab(NavigationTab.PLACES) },
                         onDeals = { viewModel.selectTab(NavigationTab.PROFILE) }
                     )
+                }
+
+                // Frames strip: photos and short videos from the community
+                if (frames.isNotEmpty()) {
+                    item {
+                        FramesRail(
+                            posts = frames,
+                            onOpen = { viewModel.openFramesViewer(it.id) },
+                            onSeeAll = { viewModel.openFramesViewer(null) }
+                        )
+                    }
                 }
 
                 // Feed Section Header
@@ -147,7 +166,10 @@ fun HomeScreen(viewModel: KolabViewModel) {
                         FeedPostCard(
                             post = post,
                             onLike = { viewModel.toggleLike(post.id) },
-                            onCollab = { viewModel.selectTab(NavigationTab.DISCOVER) }
+                            onCollab = { viewModel.selectTab(NavigationTab.DISCOVER) },
+                            onComment = { viewModel.openComments(post) },
+                            onShare = { shareFrame(context, post) },
+                            onOpenFrame = { viewModel.openFramesViewer(post.id) }
                         )
                     }
                 }
@@ -252,7 +274,7 @@ private fun FeedModeToggle(
 
 @Composable
 private fun BentoActionsGrid(
-    onNewPost: () -> Unit,
+    onNewFrame: () -> Unit,
     onFindCollab: () -> Unit,
     onHotspots: () -> Unit,
     onDeals: () -> Unit
@@ -266,12 +288,12 @@ private fun BentoActionsGrid(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             BentoCard(
-                title = "New Post",
-                subtitle = "Share moodboard",
-                icon = Icons.Default.AddBox,
+                title = "New Frame",
+                subtitle = "Photo or video",
+                icon = Icons.Default.CameraAlt,
                 modifier = Modifier.weight(1f),
-                onClick = onNewPost,
-                testTag = "bento_new_post"
+                onClick = onNewFrame,
+                testTag = "bento_new_frame"
             )
             BentoCard(
                 title = "Find Collab",
@@ -359,7 +381,10 @@ private fun BentoCard(
 private fun FeedPostCard(
     post: FeedPost,
     onLike: () -> Unit,
-    onCollab: () -> Unit
+    onCollab: () -> Unit,
+    onComment: () -> Unit,
+    onShare: () -> Unit,
+    onOpenFrame: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -436,25 +461,42 @@ private fun FeedPostCard(
                 }
             }
 
-            // Media Image with 16:10 ratio & gradient overlay
-            if (post.imageUrl.isNotBlank()) {
+            // Media — photo or short video Frame
+            if (post.hasMedia) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(240.dp)
+                        .clickable(onClick = onOpenFrame)
                 ) {
-                    SubcomposeAsyncImage(
-                        model = post.imageUrl,
-                        contentDescription = post.description,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                        loading = {
-                            ShimmerBlock(
-                                modifier = Modifier.fillMaxSize(),
-                                shape = RoundedCornerShape(0.dp)
+                    if (post.videoUrl.isNotBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color(0xFF121212)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.PlayArrow,
+                                contentDescription = "Play video Frame",
+                                tint = PureWhite.copy(alpha = 0.85f),
+                                modifier = Modifier.size(46.dp)
                             )
                         }
-                    )
+                    } else {
+                        SubcomposeAsyncImage(
+                            model = post.imageUrl,
+                            contentDescription = post.description,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                            loading = {
+                                ShimmerBlock(
+                                    modifier = Modifier.fillMaxSize(),
+                                    shape = RoundedCornerShape(0.dp)
+                                )
+                            }
+                        )
+                    }
                     // Bottom subtle gradient
                     Box(
                         modifier = Modifier
@@ -469,6 +511,62 @@ private fun FeedPostCard(
                                 )
                             )
                     )
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Color.Black.copy(alpha = 0.5f))
+                                .border(1.dp, PureWhite.copy(alpha = 0.25f), RoundedCornerShape(999.dp))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = "FRAME",
+                                color = PureWhite,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        if (post.videoUrl.isNotBlank()) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(Color.Black.copy(alpha = 0.5f))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = "VIDEO",
+                                    color = PureWhite,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Visibility,
+                            contentDescription = "Views",
+                            tint = PureWhite,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "${post.views}",
+                            color = PureWhite,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
 
@@ -492,24 +590,73 @@ private fun FeedPostCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Likes — animated, optimistic
-                    KolabLikeButton(
-                        isLiked = post.isLiked,
-                        likes = post.likes,
-                        onToggle = onLike
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Likes — animated, optimistic
+                        KolabLikeButton(
+                            isLiked = post.isLiked,
+                            likes = post.likes,
+                            onToggle = onLike
+                        )
+                        FeedMetric(
+                            icon = Icons.AutoMirrored.Filled.Chat,
+                            label = if (post.comments > 0) "${post.comments}" else "Comment",
+                            onClick = onComment
+                        )
+                        FeedMetric(
+                            icon = Icons.Default.Share,
+                            label = "Share",
+                            onClick = onShare
+                        )
+                        FeedMetric(
+                            icon = Icons.Default.Visibility,
+                            label = if (post.views > 0) "${post.views}" else "Views",
+                            onClick = onOpenFrame
+                        )
+                    }
 
                     // Collab Action Button
                     KolabPrimaryButton(
                         text = "Collab",
                         icon = Icons.Default.Handshake,
                         onClick = onCollab,
-                        height = 38.dp,
+                        height = 34.dp,
                         shape = RoundedCornerShape(10.dp),
-                        fontSize = 13
+                        fontSize = 11
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FeedMetric(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 3.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = TextSecondary,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = label,
+            color = TextSecondary,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }

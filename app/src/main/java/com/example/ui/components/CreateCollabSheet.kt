@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Domain
 import androidx.compose.material.icons.filled.Handshake
@@ -57,7 +58,8 @@ import com.example.ui.theme.TextSecondary
 @Composable
 fun CreateCollabSheet(
     viewModel: KolabViewModel,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onOpenFrameCamera: () -> Unit = {}
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -97,6 +99,59 @@ fun CreateCollabSheet(
                         tint = TextSecondary
                     )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Primary entry: capture a photo/video Frame with live Looks.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(SurfaceContainerHigh)
+                    .border(1.dp, DividerBorder, RoundedCornerShape(14.dp))
+                    .clickable {
+                        onDismiss()
+                        onOpenFrameCamera()
+                    }
+                    .padding(14.dp)
+                    .testTag("create_frame_entry"),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(PureWhite),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.CameraAlt,
+                        contentDescription = null,
+                        tint = PureBlack,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Share a Frame",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PureWhite
+                    )
+                    Text(
+                        text = "Photo or video with a look",
+                        fontSize = 11.sp,
+                        color = TextSecondary
+                    )
+                }
+                Text(
+                    text = "Open",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PureWhite
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))

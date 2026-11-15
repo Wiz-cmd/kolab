@@ -41,9 +41,31 @@ data class FeedPost(
     val description: String,
     val imageUrl: String,
     val isStudioOrGear: Boolean = false,
-    val likes: Int = 48,
+    val likes: Int = 0,
     val isLiked: Boolean = false,
-    val timestamp: String = "2h ago"
+    val timestamp: String = "just now",
+    // Frames media + engagement
+    val authorId: String = "",
+    val authorAvatar: String = "",
+    val videoUrl: String = "",
+    val filter: String = "clean",
+    val views: Int = 0,
+    val comments: Int = 0,
+    val createdAtIso: String = ""
+) {
+    val hasMedia: Boolean
+        get() = imageUrl.isNotBlank() || videoUrl.isNotBlank()
+}
+
+data class FeedComment(
+    val id: String,
+    val postId: String,
+    val authorId: String,
+    val authorName: String,
+    val authorAvatar: String,
+    val content: String,
+    val timestamp: String,
+    val isMine: Boolean = false
 )
 
 data class Hotspot(

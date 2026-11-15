@@ -1,6 +1,7 @@
 package com.example.data
 
 import android.content.Context
+import android.net.Uri
 import com.example.data.security.ChatCrypto
 import com.kolab.data.TokenManager
 import com.kolab.data.UiMessage
@@ -9,6 +10,8 @@ import com.kolab.data.api.ApiClient
 import com.kolab.data.api.ApiResult
 import com.kolab.data.api.KolabApi
 import com.kolab.data.api.dto.ChangePasswordRequest
+import com.kolab.data.api.dto.CommentResponse
+import com.kolab.data.api.dto.CreateCommentRequest
 import com.kolab.data.api.dto.CreateDealRequest
 import com.kolab.data.api.dto.CreatePostRequest
 import com.kolab.data.api.dto.DealResponse
@@ -38,6 +41,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -374,29 +380,168 @@ class KolabRepository(
         }
     }
 
-    fun addPost(author: String, location: String, description: String, imageUrl: String, isStudio: Boolean) {
+    fun addPost(
+        author: String,
+        location: String,
+        description: String,
+        imageUrl: String,
+        isStudio: Boolean,
+        videoUrl: String = "",
+        filter: String = "clean"
+    ) {
         if (!tokenManager.isLoggedIn()) return
         scope.launch {
-            when (val r = safeCall { api.createPost(CreatePostRequest(description = description, images = listOfNotNull(imageUrl.takeIf { it.isNotBlank() }), category = if (isStudio) "studio" else "general")) }) {
+            when (val r = safeCall {
+                api.createPost(
+                    CreatePostRequest(
+                        description = description,
+                        imageUrl = imageUrl.takeIf { it.isNotBlank() },
+                        videoUrl = videoUrl.takeIf { it.isNotBlank() },
+                        filter = filter.takeIf { it.isNotBlank() },
+                        location = location.takeIf { it.isNotBlank() },
+                        category = if (isStudio) "studio" else "general"
+                    )
+                )
+            }) {
                 is ApiResult.Success -> {
                     val post = r.data
-                    _feedPosts.value = listOf(
-                        FeedPost(
-                            id = post.id,
-                            author = post.author.name.ifBlank { author },
-                            location = post.author.location ?: location,
-                            description = description,
-                            imageUrl = post.images.firstOrNull() ?: imageUrl,
-                            isStudioOrGear = isStudio,
-                            likes = post.likesCount,
-                            isLiked = false,
-                            timestamp = "just now"
-                        )
-                    ) + _feedPosts.value
+                    _feedPosts.value = listOf(post.toFeedPost()) + _feedPosts.value
                 }
                 else -> {}
             }
         }
+    }
+
+    /** Creates a post and prepends it to the live feed on success. */
+    suspend fun createPost(
+        author: String,
+        location: String,
+        description: String,
+        imageUrl: String,
+        isStudio: Boolean,
+        videoUrl: String = "",
+        filter: String = "clean"
+    ): Result<FeedPost> = withContext(Dispatchers.IO) {
+        if (!tokenManager.isLoggedIn()) {
+            return@withContext Result.failure(Exception("Sign in to publish a Frame."))
+        }
+        when (val r = safeCall {
+            api.createPost(
+                CreatePostRequest(
+                    description = description,
+                    imageUrl = imageUrl.takeIf { it.isNotBlank() },
+                    videoUrl = videoUrl.takeIf { it.isNotBlank() },
+                    filter = filter.takeIf { it.isNotBlank() },
+                    location = location.takeIf { it.isNotBlank() },
+                    category = if (isStudio) "studio" else "general"
+                )
+            )
+        }) {
+            is ApiResult.Success -> {
+                val post = r.data.toFeedPost()
+                _feedPosts.value = listOf(post) + _feedPosts.value
+                Result.success(post)
+            }
+            is ApiResult.Error -> Result.failure(Exception(r.message))
+            is ApiResult.Exception -> Result.failure(r.throwable)
+        }
+    }
+
+    /**
+     * Uploads a photo or short video chosen/captured on the device.
+     * Returns the absolute URL to save on the post.
+     */
+    suspend fun uploadMedia(uri: Uri, mimeType: String): Result<String> = withContext(Dispatchers.IO) {
+        if (!tokenManager.isLoggedIn()) {
+            return@withContext Result.failure(Exception("Sign in to share a Frame."))
+        }
+        try {
+            val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                ?: return@withContext Result.failure(Exception("Could not read that file."))
+            val isVideo = mimeType.startsWith("video/")
+            val max = if (isVideo) MAX_VIDEO_BYTES else MAX_IMAGE_BYTES
+            if (bytes.size > max) {
+                val mb = max / (1024 * 1024)
+                return@withContext Result.failure(Exception("That file is too large. Keep it under ${mb}MB."))
+            }
+            val extension = when {
+                mimeType.contains("png") -> "png"
+                mimeType.contains("webp") -> "webp"
+                mimeType.contains("gif") -> "gif"
+                isVideo -> "mp4"
+                else -> "jpg"
+            }
+            val body = bytes.toRequestBody(mimeType.toMediaTypeOrNull())
+            val part = MultipartBody.Part.createFormData(
+                "file",
+                "frame-${System.currentTimeMillis()}.$extension",
+                body
+            )
+            when (val r = safeCall { api.uploadFile(part) }) {
+                is ApiResult.Success -> Result.success(absoluteMediaUrl(r.data.url))
+                is ApiResult.Error -> Result.failure(Exception(r.message))
+                is ApiResult.Exception -> Result.failure(r.throwable)
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Upload failed. Check your connection and try again."))
+        }
+    }
+
+    /** Records a Frame view. Guests are allowed and counted too. */
+    fun recordView(postId: String) {
+        val list = _feedPosts.value.toMutableList()
+        val idx = list.indexOfFirst { it.id == postId }
+        if (idx == -1) return
+        list[idx] = list[idx].copy(views = list[idx].views + 1)
+        _feedPosts.value = list
+
+        scope.launch { safeCall { api.recordView(postId) } }
+    }
+
+    suspend fun loadComments(postId: String): Result<List<FeedComment>> = withContext(Dispatchers.IO) {
+        when (val r = safeCall { api.getComments(postId) }) {
+            is ApiResult.Success -> {
+                val me = tokenManager.getUserId()
+                Result.success(r.data.data.map { it.toFeedComment(postId, me) })
+            }
+            is ApiResult.Error -> Result.failure(Exception(r.message))
+            is ApiResult.Exception -> Result.failure(r.throwable)
+        }
+    }
+
+    suspend fun addComment(postId: String, content: String): Result<FeedComment> = withContext(Dispatchers.IO) {
+        if (!tokenManager.isLoggedIn()) {
+            return@withContext Result.failure(Exception("Sign in to comment."))
+        }
+        when (val r = safeCall { api.createComment(postId, CreateCommentRequest(content.trim())) }) {
+            is ApiResult.Success -> {
+                val me = tokenManager.getUserId()
+                val comment = r.data.toFeedComment(postId, me)
+                bumpCommentCount(postId, 1)
+                Result.success(comment)
+            }
+            is ApiResult.Error -> Result.failure(Exception(r.message))
+            is ApiResult.Exception -> Result.failure(r.throwable)
+        }
+    }
+
+    suspend fun deleteComment(postId: String, commentId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        when (val r = safeCall { api.deleteComment(postId, commentId) }) {
+            is ApiResult.Success -> {
+                bumpCommentCount(postId, -1)
+                Result.success(Unit)
+            }
+            is ApiResult.Error -> Result.failure(Exception(r.message))
+            is ApiResult.Exception -> Result.failure(r.throwable)
+        }
+    }
+
+    private fun bumpCommentCount(postId: String, delta: Int) {
+        val list = _feedPosts.value.toMutableList()
+        val idx = list.indexOfFirst { it.id == postId }
+        if (idx == -1) return
+        list[idx] = list[idx].copy(comments = (list[idx].comments + delta).coerceAtLeast(0))
+        _feedPosts.value = list
     }
 
     fun addPortfolioImage(url: String) {
@@ -671,6 +816,25 @@ class KolabRepository(
 
     // ── Mappers ─────────────────────────────────────────────────────────
 
+    private fun absoluteMediaUrl(raw: String?): String {
+        val url = raw.orEmpty()
+        if (url.isBlank()) return ""
+        if (url.startsWith("http://") || url.startsWith("https://")) return url
+        val origin = com.example.BuildConfig.BASE_URL.substringBefore("/api/").trimEnd('/')
+        return "$origin/${url.trimStart('/')}"
+    }
+
+    private fun CommentResponse.toFeedComment(postId: String, me: String?) = FeedComment(
+        id = id,
+        postId = postId,
+        authorId = author.id,
+        authorName = author.name,
+        authorAvatar = absoluteMediaUrl(author.avatar),
+        content = content,
+        timestamp = relativeTime(createdAt),
+        isMine = me != null && author.id == me
+    )
+
     private fun UserResponse.toCreative() = CreativeProfile(
         id = id,
         name = name,
@@ -687,14 +851,21 @@ class KolabRepository(
 
     private fun PostResponse.toFeedPost() = FeedPost(
         id = id,
-        author = author.name,
-        location = author.location ?: "Joburg",
+        author = author.name.ifBlank { "Kolab Creator" },
+        location = location ?: author.location.orEmpty(),
         description = description,
-        imageUrl = images.firstOrNull() ?: "",
+        imageUrl = absoluteMediaUrl(imageUrl),
         isStudioOrGear = category.equals("studio", ignoreCase = true) || category.equals("gear", ignoreCase = true),
         likes = likesCount,
         isLiked = isLiked,
-        timestamp = relativeTime(createdAt)
+        timestamp = relativeTime(createdAt),
+        authorId = author.id,
+        authorAvatar = absoluteMediaUrl(author.avatar),
+        videoUrl = absoluteMediaUrl(videoUrl),
+        filter = filter?.takeIf { it.isNotBlank() } ?: "clean",
+        views = viewsCount,
+        comments = commentsCount,
+        createdAtIso = createdAt
     )
 
     private fun HotspotResponse.toHotspot() = Hotspot(
@@ -790,5 +961,7 @@ class KolabRepository(
     companion object {
         private const val DEFAULT_LOCATION = "Johannesburg, South Africa"
         private const val SEARCH_SEPARATOR = "\u0001"
+        private const val MAX_IMAGE_BYTES = 15 * 1024 * 1024L
+        private const val MAX_VIDEO_BYTES = 50 * 1024 * 1024L
     }
 }

@@ -1,11 +1,13 @@
 package com.example.ui
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.ActiveDeal
 import com.example.data.AppGraph
 import com.example.data.CollabRequest
 import com.example.data.CreativeProfile
+import com.example.data.FeedComment
 import com.example.data.FeedMode
 import com.example.data.FeedPost
 import com.example.data.Hotspot
@@ -61,6 +63,15 @@ data class UiNotification(
     val id: Long = System.currentTimeMillis(),
     val message: String
 )
+
+/** A captured or picked photo/video waiting for a caption and publishing. */
+data class FrameDraftMedia(
+    val uri: Uri,
+    val mimeType: String,
+    val lookKey: String
+) {
+    val isVideo: Boolean get() = mimeType.startsWith("video/")
+}
 
 class KolabViewModel(
     private val repository: KolabRepository = AppGraph.repository
@@ -134,6 +145,31 @@ class KolabViewModel(
 
     private val _notification = MutableStateFlow<UiNotification?>(null)
     val notification: StateFlow<UiNotification?> = _notification.asStateFlow()
+
+    // ── Frames (photo/video posts) ────────────────────────────────────
+    private val _showFrameCamera = MutableStateFlow(false)
+    val showFrameCamera: StateFlow<Boolean> = _showFrameCamera.asStateFlow()
+
+    private val _draftMedia = MutableStateFlow<FrameDraftMedia?>(null)
+    val draftMedia: StateFlow<FrameDraftMedia?> = _draftMedia.asStateFlow()
+
+    private val _isPublishing = MutableStateFlow(false)
+    val isPublishing: StateFlow<Boolean> = _isPublishing.asStateFlow()
+
+    private val _framesViewerPostId = MutableStateFlow<String?>(null)
+    val framesViewerPostId: StateFlow<String?> = _framesViewerPostId.asStateFlow()
+
+    private val _commentsPost = MutableStateFlow<FeedPost?>(null)
+    val commentsPost: StateFlow<FeedPost?> = _commentsPost.asStateFlow()
+
+    private val _comments = MutableStateFlow<List<FeedComment>>(emptyList())
+    val comments: StateFlow<List<FeedComment>> = _comments.asStateFlow()
+
+    private val _commentsLoading = MutableStateFlow(false)
+    val commentsLoading: StateFlow<Boolean> = _commentsLoading.asStateFlow()
+
+    private val _commentBusy = MutableStateFlow(false)
+    val commentBusy: StateFlow<Boolean> = _commentBusy.asStateFlow()
 
     // Repository Flows
     val feedPosts: StateFlow<List<FeedPost>> = repository.feedPosts
@@ -547,6 +583,156 @@ class KolabViewModel(
 
     fun closeCreateSheet() {
         _showCreateCollabSheet.value = false
+    }
+
+    // ── Frames actions ────────────────────────────────────────────────
+
+    fun openFrameCamera() {
+        if (!requireAccount("share a Frame")) return
+        _showCreateCollabSheet.value = false
+        _showFrameCamera.value = true
+    }
+
+    fun closeFrameCamera() {
+        _showFrameCamera.value = false
+    }
+
+    /** Called by the camera after a capture or gallery pick. */
+    fun onFrameMediaReady(uri: Uri, mimeType: String, lookKey: String) {
+        _showFrameCamera.value = false
+        _draftMedia.value = FrameDraftMedia(uri = uri, mimeType = mimeType, lookKey = lookKey)
+    }
+
+    fun discardFrameDraft() {
+        if (_isPublishing.value) return
+        _draftMedia.value = null
+    }
+
+    fun openFramesViewer(postId: String? = null) {
+        _framesViewerPostId.value = postId ?: ""
+    }
+
+    fun closeFramesViewer() {
+        _framesViewerPostId.value = null
+    }
+
+    fun recordFrameView(postId: String) {
+        repository.recordView(postId)
+    }
+
+    fun openComments(post: FeedPost) {
+        _commentsPost.value = post
+        _comments.value = emptyList()
+        _commentsLoading.value = true
+        viewModelScope.launch {
+            repository.loadComments(post.id)
+                .onSuccess { _comments.value = it }
+                .onFailure { showNotification(it.message ?: "Could not load comments") }
+            _commentsLoading.value = false
+        }
+    }
+
+    fun closeComments() {
+        if (_commentBusy.value) return
+        _commentsPost.value = null
+        _comments.value = emptyList()
+    }
+
+    fun submitComment(text: String) {
+        val post = _commentsPost.value ?: return
+        if (_commentBusy.value) return
+        if (!requireAccount("comment on a Frame")) return
+        val content = text.trim()
+        if (content.isBlank()) return
+        _commentBusy.value = true
+        viewModelScope.launch {
+            try {
+                repository.addComment(post.id, content)
+                    .onSuccess { comment ->
+                        _comments.value = listOf(comment) + _comments.value
+                        val current = _commentsPost.value ?: post
+                        _commentsPost.value = current.copy(comments = current.comments + 1)
+                    }
+                    .onFailure {
+                        showNotification(it.message ?: "Could not post that comment")
+                    }
+            } finally {
+                _commentBusy.value = false
+            }
+        }
+    }
+
+    fun removeComment(comment: FeedComment) {
+        val post = _commentsPost.value ?: return
+        if (_commentBusy.value) return
+        _commentBusy.value = true
+        viewModelScope.launch {
+            try {
+                repository.deleteComment(post.id, comment.id)
+                    .onSuccess {
+                        _comments.value = _comments.value.filterNot { it.id == comment.id }
+                        val current = _commentsPost.value ?: post
+                        _commentsPost.value = current.copy(comments = (current.comments - 1).coerceAtLeast(0))
+                    }
+                    .onFailure {
+                        showNotification(it.message ?: "Could not delete that comment")
+                    }
+            } finally {
+                _commentBusy.value = false
+            }
+        }
+    }
+
+    /**
+     * Uploads the selected media, creates the Frame, and closes the
+     * composer. Upload can take a while on mobile data, so the composer stays
+     * open with a progress state until it finishes.
+     */
+    fun publishFrame(
+        description: String,
+        location: String,
+        onResult: (Boolean) -> Unit = {}
+    ) {
+        val draft = _draftMedia.value ?: return
+        if (_isPublishing.value) return
+        if (!requireAccount("share a Frame")) return
+        _isPublishing.value = true
+        viewModelScope.launch {
+            try {
+                repository.uploadMedia(draft.uri, draft.mimeType)
+                    .onSuccess { url ->
+                        val caption = description.trim().ifBlank {
+                            if (draft.isVideo) "A moment worth sharing." else "A little of life, right now."
+                        }
+                        repository.createPost(
+                            author = _currentUserName.value,
+                            location = location.trim(),
+                            description = caption,
+                            imageUrl = if (draft.isVideo) "" else url,
+                            isStudio = false,
+                            videoUrl = if (draft.isVideo) url else "",
+                            filter = draft.lookKey
+                        )
+                            .onSuccess {
+                                _draftMedia.value = null
+                                _showCreateCollabSheet.value = false
+                                _currentTab.value = NavigationTab.HOME
+                                showNotification("Frame shared")
+                                onResult(true)
+                            }
+                            .onFailure {
+                                showNotification(it.message ?: "Could not publish your Frame")
+                                onResult(false)
+                            }
+                    }
+                    .onFailure {
+                        showNotification(it.message ?: "Upload failed. Try again.")
+                        onResult(false)
+                    }
+            } finally {
+                _isPublishing.value = false
+            }
+        }
     }
 
     fun openWithdrawDialog() {

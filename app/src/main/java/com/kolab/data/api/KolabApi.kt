@@ -93,7 +93,7 @@ interface KolabApi {
     // ── Posts ───────────────────────────────────────────────────────────
     @GET("posts/feed")
     suspend fun getFeed(
-        @Query("take") take: Int = 20,
+        @Query("limit") take: Int = 20,
         @Query("skip") skip: Int = 0,
         @Query("search") search: String? = null,
         @Query("category") category: String? = null,
@@ -102,13 +102,13 @@ interface KolabApi {
 
     @GET("posts/feed/for-you")
     suspend fun getForYouFeed(
-        @Query("take") take: Int = 20,
+        @Query("limit") take: Int = 20,
         @Query("skip") skip: Int = 0
     ): Response<PostListResponse>
 
     @GET("posts/feed/for-you/public")
     suspend fun getPublicFeed(
-        @Query("take") take: Int = 20,
+        @Query("limit") take: Int = 20,
         @Query("skip") skip: Int = 0
     ): Response<PostListResponse>
 
@@ -126,6 +126,25 @@ interface KolabApi {
 
     @DELETE("posts/{id}")
     suspend fun deletePost(@Path("id") id: String): Response<Unit>
+
+    @GET("posts/{id}/comments")
+    suspend fun getComments(
+        @Path("id") id: String,
+        @Query("limit") take: Int = 50,
+        @Query("skip") skip: Int = 0
+    ): Response<CommentListResponse>
+
+    @POST("posts/{id}/comments")
+    suspend fun createComment(
+        @Path("id") id: String,
+        @Body request: CreateCommentRequest
+    ): Response<CommentResponse>
+
+    @DELETE("posts/{id}/comments/{commentId}")
+    suspend fun deleteComment(
+        @Path("id") id: String,
+        @Path("commentId") commentId: String
+    ): Response<Unit>
 
     @GET("posts/interests/me")
     suspend fun getMyInterests(): Response<InterestScores>
@@ -318,7 +337,7 @@ interface KolabApi {
     suspend fun uploadFile(
         @Part file: MultipartBody.Part,
         @Part("type") type: RequestBody? = null
-    ): Response<Map<String, String>>
+    ): Response<UploadResponse>
 
     @GET("uploads/presign")
     suspend fun getPresignedUrl(@Query("key") key: String): Response<Map<String, String>>

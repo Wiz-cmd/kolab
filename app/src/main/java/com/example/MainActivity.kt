@@ -80,6 +80,10 @@ import com.example.ui.discover.DiscoverScreen
 import com.example.ui.home.HomeScreen
 import com.example.ui.places.PlacesScreen
 import com.example.ui.profile.ProfileScreen
+import com.example.ui.frames.FrameCameraScreen
+import com.example.ui.frames.FrameCommentsSheet
+import com.example.ui.frames.FrameComposerScreen
+import com.example.ui.frames.FramesScreen
 import com.example.ui.theme.DarkSurface
 import com.example.ui.theme.DividerBorder
 import com.example.ui.theme.GlassBackground
@@ -195,6 +199,15 @@ fun KolabApp(
     val currentTab by viewModel.currentTab.collectAsState()
     val showCreateSheet by viewModel.showCreateCollabSheet.collectAsState()
     val notification by viewModel.notification.collectAsState()
+    val showFrameCamera by viewModel.showFrameCamera.collectAsState()
+    val draftMedia by viewModel.draftMedia.collectAsState()
+    val isPublishing by viewModel.isPublishing.collectAsState()
+    val framesViewerPostId by viewModel.framesViewerPostId.collectAsState()
+    val commentsPost by viewModel.commentsPost.collectAsState()
+    val comments by viewModel.comments.collectAsState()
+    val commentsLoading by viewModel.commentsLoading.collectAsState()
+    val commentBusy by viewModel.commentBusy.collectAsState()
+    val currentLocation by viewModel.currentLocation.collectAsState()
 
     val chatViewModel: ChatViewModel = viewModel(
         factory = ChatViewModelFactory(AppGraph.repository, AppGraph.socketManager)
@@ -297,7 +310,53 @@ fun KolabApp(
         if (showCreateSheet) {
             CreateCollabSheet(
                 viewModel = viewModel,
-                onDismiss = { viewModel.closeCreateSheet() }
+                onDismiss = { viewModel.closeCreateSheet() },
+                onOpenFrameCamera = { viewModel.openFrameCamera() }
+            )
+        }
+
+        // Frames: full-screen photo/video feed
+        if (framesViewerPostId != null) {
+            FramesScreen(
+                viewModel = viewModel,
+                startPostId = framesViewerPostId,
+                onClose = { viewModel.closeFramesViewer() }
+            )
+        }
+
+        // Frame camera (capture or gallery pick)
+        if (showFrameCamera) {
+            FrameCameraScreen(
+                onClose = { viewModel.closeFrameCamera() },
+                onMediaReady = { uri, mimeType, lookKey ->
+                    viewModel.onFrameMediaReady(uri, mimeType, lookKey)
+                }
+            )
+        }
+
+        // Frame composer (caption + location + publish)
+        draftMedia?.let { draft ->
+            FrameComposerScreen(
+                draft = draft,
+                currentLocation = currentLocation,
+                isPublishing = isPublishing,
+                onDismiss = { viewModel.discardFrameDraft() },
+                onPublish = { description, location ->
+                    viewModel.publishFrame(description, location)
+                }
+            )
+        }
+
+        // Comments on a Frame
+        commentsPost?.let { post ->
+            FrameCommentsSheet(
+                post = post,
+                comments = comments,
+                isLoading = commentsLoading,
+                isBusy = commentBusy,
+                onDismiss = { viewModel.closeComments() },
+                onSubmit = { viewModel.submitComment(it) },
+                onDelete = { viewModel.removeComment(it) }
             )
         }
 
