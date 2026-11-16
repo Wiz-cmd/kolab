@@ -13,3 +13,8 @@ data class SocialExchangeRequest(
     val code: String,
     val state: String
 )
+
+data class SocialProviderResponse(
+    @SerializedName("provider") val provider: String,
+    @SerializedName("configured") val configured: Boolean = false
+)

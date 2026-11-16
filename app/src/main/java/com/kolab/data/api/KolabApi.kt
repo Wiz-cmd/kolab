@@ -342,8 +342,10 @@ interface KolabApi {
     @GET("uploads/presign")
     suspend fun getPresignedUrl(@Query("key") key: String): Response<Map<String, String>>
 
-    // ── Social login (Instagram / Twitter-X). Backend is scaffold: returns
-    // ── { configured:false } until provider credentials exist in its env.
+    // ── Social login providers actually enabled on the server ──────────
+    @GET("social/providers")
+    suspend fun socialProviders(): Response<List<SocialProviderResponse>>
+
     @GET("social/{provider}/start")
     suspend fun socialStart(@Path("provider") provider: String): Response<SocialStartResponse>
 

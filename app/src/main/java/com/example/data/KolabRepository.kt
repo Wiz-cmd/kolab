@@ -24,6 +24,7 @@ import com.kolab.data.api.dto.PostResponse
 import com.kolab.data.api.dto.RefreshRequest
 import com.kolab.data.api.dto.RegisterRequest
 import com.kolab.data.api.dto.SocialExchangeRequest
+import com.kolab.data.api.dto.SocialProviderResponse
 import com.kolab.data.api.dto.SocialStartResponse
 import com.kolab.data.api.dto.TwoFactorEnableRequest
 import com.kolab.data.api.dto.TwoFactorSetupResponse
@@ -794,6 +795,17 @@ class KolabRepository(
     }
 
     // ── Social login ────────────────────────────────────────────────────
+
+    /** Canonical provider keys the server can actually authenticate. */
+    suspend fun socialProviders(): Result<List<String>> = withContext(Dispatchers.IO) {
+        when (val r = safeCall { api.socialProviders() }) {
+            is ApiResult.Success -> Result.success(
+                r.data.filter { it.configured }.map { it.provider.lowercase() }
+            )
+            is ApiResult.Error -> Result.failure(Exception(r.message))
+            is ApiResult.Exception -> Result.failure(r.throwable)
+        }
+    }
 
     suspend fun socialStart(provider: String): Result<SocialStartResponse> = withContext(Dispatchers.IO) {
         when (val r = safeCall { api.socialStart(provider) }) {

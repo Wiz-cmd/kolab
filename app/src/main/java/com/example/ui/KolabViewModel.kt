@@ -90,6 +90,10 @@ class KolabViewModel(
     private val _isLoggingIn = MutableStateFlow(false)
     val isLoggingIn: StateFlow<Boolean> = _isLoggingIn.asStateFlow()
 
+    /** Canonical social providers configured on the backend (google/twitter/instagram). */
+    private val _availableSocialProviders = MutableStateFlow<Set<String>>(emptySet())
+    val availableSocialProviders: StateFlow<Set<String>> = _availableSocialProviders.asStateFlow()
+
     /** True while browsing the public API without an account. */
     private val _isGuestMode = MutableStateFlow(repository.isGuestMode() && !repository.isLoggedIn())
     val isGuestMode: StateFlow<Boolean> = _isGuestMode.asStateFlow()
@@ -208,6 +212,12 @@ class KolabViewModel(
 
     init {
         restoreSession()
+        // Discover which social sign-ins are actually available so the login
+        // screen never offers a button that cannot connect.
+        viewModelScope.launch {
+            repository.socialProviders()
+                .onSuccess { _availableSocialProviders.value = it.toSet() }
+        }
     }
 
     private fun restoreSession() {

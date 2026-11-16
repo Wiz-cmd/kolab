@@ -74,6 +74,7 @@ fun SignUpScreen(viewModel: KolabViewModel) {
     var passwordVisible by remember { mutableStateOf(false) }
     var visible by remember { mutableStateOf(false) }
     val isLoggingIn by viewModel.isLoggingIn.collectAsState()
+    val socialProviders by viewModel.availableSocialProviders.collectAsState()
 
     LaunchedEffect(Unit) {
         visible = true
@@ -284,69 +285,63 @@ fun SignUpScreen(viewModel: KolabViewModel) {
 
                         Spacer(modifier = Modifier.height(18.dp))
 
-                        // OR Divider
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            HorizontalDivider(
-                                modifier = Modifier.weight(1f),
-                                color = DividerBorder,
-                                thickness = 1.dp
-                            )
-                            Text(
-                                text = "OR",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextSecondary,
-                                modifier = Modifier.padding(horizontal = 14.dp)
-                            )
-                            HorizontalDivider(
-                                modifier = Modifier.weight(1f),
-                                color = DividerBorder,
-                                thickness = 1.dp
-                            )
+                        if (socialProviders.isNotEmpty()) {
+                            // OR Divider
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                HorizontalDivider(
+                                    modifier = Modifier.weight(1f),
+                                    color = DividerBorder,
+                                    thickness = 1.dp
+                                )
+                                Text(
+                                    text = "OR",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextSecondary,
+                                    modifier = Modifier.padding(horizontal = 14.dp)
+                                )
+                                HorizontalDivider(
+                                    modifier = Modifier.weight(1f),
+                                    color = DividerBorder,
+                                    thickness = 1.dp
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(18.dp))
+
+                            if ("google" in socialProviders) {
+                                SocialAuthButton(
+                                    label = "Continue with Google",
+                                    iconType = "google",
+                                    onClick = { viewModel.setAuthStep(AuthStep.GOOGLE_AUTH_SHEET) },
+                                    testTag = "signup_with_google_button"
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                            }
+
+                            if ("instagram" in socialProviders) {
+                                SocialAuthButton(
+                                    label = "Continue with Instagram",
+                                    iconType = "instagram",
+                                    onClick = { viewModel.setAuthStep(AuthStep.INSTAGRAM_AUTH_SHEET) },
+                                    testTag = "signup_with_instagram_button"
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                            }
+
+                            if ("twitter" in socialProviders) {
+                                SocialAuthButton(
+                                    label = "Continue with X",
+                                    iconType = "x",
+                                    onClick = { viewModel.setAuthStep(AuthStep.X_AUTH_SHEET) },
+                                    testTag = "signup_with_x_button"
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                            }
                         }
-
-                        Spacer(modifier = Modifier.height(18.dp))
-
-                        // Continue with Apple
-                        SocialAuthButton(
-                            label = "Continue with Apple",
-                            iconType = "apple",
-                            onClick = { viewModel.setAuthStep(AuthStep.APPLE_AUTH_SHEET) },
-                            testTag = "signup_with_apple_button"
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        // Continue with Google
-                        SocialAuthButton(
-                            label = "Continue with Google",
-                            iconType = "google",
-                            onClick = { viewModel.setAuthStep(AuthStep.GOOGLE_AUTH_SHEET) },
-                            testTag = "signup_with_google_button"
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        // Continue with Instagram
-                        SocialAuthButton(
-                            label = "Continue with Instagram",
-                            iconType = "instagram",
-                            onClick = { viewModel.setAuthStep(AuthStep.INSTAGRAM_AUTH_SHEET) },
-                            testTag = "signup_with_instagram_button"
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        // Continue with X
-                        SocialAuthButton(
-                            label = "Continue with X",
-                            iconType = "x",
-                            onClick = { viewModel.setAuthStep(AuthStep.X_AUTH_SHEET) },
-                            testTag = "signup_with_x_button"
-                        )
                     }
                 }
 

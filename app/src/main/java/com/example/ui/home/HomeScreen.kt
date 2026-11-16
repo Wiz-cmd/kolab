@@ -2,7 +2,6 @@ package com.example.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -142,7 +141,7 @@ fun HomeScreen(viewModel: KolabViewModel) {
                                 color = PureWhite
                             )
                             Text(
-                                text = "Active Calls",
+                                text = if (frames.isEmpty()) "Live feed" else "${frames.size} Frames",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = TextSecondary
@@ -257,7 +256,7 @@ private fun FeedModeToggle(
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
                     .background(if (selected) PureWhite else Color.Transparent)
-                    .clickable { onSelect(m) }
+                    .kolabClickable { onSelect(m) }
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -467,7 +466,7 @@ private fun FeedPostCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(240.dp)
-                        .clickable(onClick = onOpenFrame)
+                        .kolabClickable(onClick = onOpenFrame)
                 ) {
                     if (post.videoUrl.isNotBlank()) {
                         Box(
@@ -494,6 +493,19 @@ private fun FeedPostCard(
                                     modifier = Modifier.fillMaxSize(),
                                     shape = RoundedCornerShape(0.dp)
                                 )
+                            },
+                            error = {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CameraAlt,
+                                        contentDescription = "Media unavailable",
+                                        tint = PureWhite.copy(alpha = 0.5f),
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                }
                             }
                         )
                     }
@@ -641,7 +653,7 @@ private fun FeedMetric(
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
+            .kolabClickable(onClick = onClick)
             .padding(horizontal = 3.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
