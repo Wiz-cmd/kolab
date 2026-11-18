@@ -250,7 +250,7 @@ fun ProfileScreen(
 
             HorizontalDivider(color = DividerBorder, thickness = 1.dp)
 
-            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            Box(modifier = Modifier.fillMaxSize()) {
             androidx.compose.animation.AnimatedContent(
                 targetState = profileSubTab,
                 transitionSpec = {
