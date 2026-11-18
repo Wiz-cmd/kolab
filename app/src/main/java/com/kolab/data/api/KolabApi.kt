@@ -97,7 +97,8 @@ interface KolabApi {
         @Query("skip") skip: Int = 0,
         @Query("search") search: String? = null,
         @Query("category") category: String? = null,
-        @Query("tags") tags: String? = null
+        @Query("tags") tags: String? = null,
+        @Query("location") location: String? = null
     ): Response<PostListResponse>
 
     @GET("posts/feed/for-you")
@@ -120,9 +121,6 @@ interface KolabApi {
         @Path("id") id: String,
         @Body request: UpdatePostRequest
     ): Response<PostResponse>
-
-    @DELETE("posts/{id}")
-    suspend fun deletePost(@Path("id") id: String): Response<Unit>
 
     @POST("posts/{id}/like")
     suspend fun toggleLike(@Path("id") id: String): Response<LikeResponse>

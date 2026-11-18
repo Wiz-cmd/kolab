@@ -148,7 +148,11 @@ fun HomeScreen(viewModel: KolabViewModel) {
                                 color = PureWhite
                             )
                             Text(
-                                text = if (frames.isEmpty()) "Live feed" else "${frames.size} Frames",
+                                text = if (frames.isEmpty()) {
+                                    "Near ${currentLocation.substringBefore(',')}"
+                                } else {
+                                    "${frames.size} Frames · ${currentLocation.substringBefore(',')}"
+                                },
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = TextSecondary

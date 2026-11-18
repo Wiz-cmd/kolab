@@ -28,7 +28,7 @@ class AppLockManager(context: Context) {
         require(pin.length == PIN_LENGTH && pin.all { it.isDigit() }) { "PIN must be $PIN_LENGTH digits" }
         val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
         prefs.edit()
-            .putString(KEY_PIN_SALT, Base64.getEncoder().encodeToString(salt))
+            .putString(KEY_PIN_SALT, Base64.encodeToString(salt, Base64.NO_WRAP))
             .putString(KEY_PIN_HASH, hash(pin, salt))
             .apply()
     }
@@ -37,7 +37,7 @@ class AppLockManager(context: Context) {
         val salt = prefs.getString(KEY_PIN_SALT, null) ?: return false
         val expected = prefs.getString(KEY_PIN_HASH, null) ?: return false
         val decoded = try {
-            Base64.getDecoder().decode(salt)
+            Base64.decode(salt, Base64.DEFAULT)
         } catch (_: IllegalArgumentException) {
             return false
         }
@@ -53,7 +53,7 @@ class AppLockManager(context: Context) {
     private fun hash(pin: String, salt: ByteArray): String {
         val digest = MessageDigest.getInstance("SHA-256")
         digest.update(salt)
-        return Base64.getEncoder().encodeToString(digest.digest(pin.toByteArray()))
+        return Base64.encodeToString(digest.digest(pin.toByteArray()), Base64.NO_WRAP)
     }
 
     private fun constantTimeEquals(a: String, b: String): Boolean {

@@ -864,7 +864,9 @@ class KolabViewModel(
 
     fun switchLocation(loc: String) {
         repository.setLocation(loc)
-        showNotification("Switched location to $loc")
+        // Refresh the feed so it immediately reflects the new local area.
+        viewModelScope.launch { repository.loadFeed(_feedMode.value) }
+        showNotification("Showing Frames near $loc")
     }
 
     fun showNotification(msg: String) {

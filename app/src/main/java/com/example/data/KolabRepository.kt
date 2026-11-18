@@ -244,10 +244,14 @@ class KolabRepository(
         }
     }
 
+    /** The city portion of the selected location, used for geo-relevant feeds. */
+    private fun feedLocation(): String? =
+        _currentLocation.value.split(',')[0].trim().ifBlank { null }
+
     private suspend fun loadFeed() {
         _feedLoading.value = true
         try {
-            when (val r = safeCall { api.getFeed() }) {
+            when (val r = safeCall { api.getFeed(location = feedLocation()) }) {
                 is ApiResult.Success -> _feedPosts.value = r.data.data.map { it.toFeedPost() }
                 else -> noteLoadFailure()
             }
@@ -672,7 +676,7 @@ class KolabRepository(
         try {
             when (mode) {
                 FeedMode.FOLLOWING -> {
-                    when (val r = safeCall { api.getFeed() }) {
+                    when (val r = safeCall { api.getFeed(location = feedLocation()) }) {
                         is ApiResult.Success -> _feedPosts.value = r.data.data.map { it.toFeedPost() }
                         else -> {}
                     }
