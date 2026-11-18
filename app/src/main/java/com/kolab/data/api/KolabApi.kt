@@ -100,6 +100,21 @@ interface KolabApi {
     ): Response<UserListResponse>
 
     // ── Posts ───────────────────────────────────────────────────────────
+    @GET("challenges/current")
+    suspend fun currentChallenge(): Response<ChallengeResponse>
+
+    @GET("challenges/current/leaderboard")
+    suspend fun challengeLeaderboard(@Query("limit") limit: Int = 10): Response<PostListResponse>
+
+    @GET("users/rising")
+    suspend fun risingCreators(
+        @Query("city") city: String? = null,
+        @Query("take") take: Int = 12
+    ): Response<List<UserResponse>>
+
+    @GET("analytics/viewers")
+    suspend fun profileViewers(): Response<ProfileViewersResponse>
+
     @GET("posts/feed")
     suspend fun getFeed(
         @Query("limit") take: Int = 20,

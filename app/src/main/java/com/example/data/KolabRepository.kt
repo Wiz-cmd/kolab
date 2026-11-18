@@ -9,7 +9,10 @@ import com.kolab.data.UiUser
 import com.kolab.data.api.ApiClient
 import com.kolab.data.api.ApiResult
 import com.kolab.data.api.KolabApi
+import com.kolab.data.api.dto.ChallengeResponse
 import com.kolab.data.api.dto.ChangePasswordRequest
+import com.kolab.data.api.dto.ProfileViewersResponse
+import com.kolab.data.api.dto.ProfileViewerResponse
 import com.kolab.data.api.dto.CommentResponse
 import com.kolab.data.api.dto.CreateCommentRequest
 import com.kolab.data.api.dto.CreateDealRequest
@@ -78,6 +81,10 @@ class KolabRepository(
     private val _userPortfolio = MutableStateFlow<List<String>>(emptyList())
     private val _currentLocation = MutableStateFlow(DEFAULT_LOCATION)
     private val _dataError = MutableStateFlow<String?>(null)
+    private val _currentChallenge = MutableStateFlow<ChallengeResponse?>(null)
+    private val _challengeLeaderboard = MutableStateFlow<List<FeedPost>>(emptyList())
+    private val _risingCreators = MutableStateFlow<List<CreativeProfile>>(emptyList())
+    private val _profileViewers = MutableStateFlow<List<ProfileViewerResponse>>(emptyList())
     private val _themeMode = MutableStateFlow(
         context.getSharedPreferences("kolab_prefs", Context.MODE_PRIVATE)
             .getString(KEY_THEME_MODE, "system") ?: "system"
@@ -93,6 +100,10 @@ class KolabRepository(
     val currentLocation: StateFlow<String> = _currentLocation.asStateFlow()
     val dataError: StateFlow<String?> = _dataError.asStateFlow()
     val themeMode: StateFlow<String> = _themeMode.asStateFlow()
+    val currentChallenge: StateFlow<ChallengeResponse?> = _currentChallenge.asStateFlow()
+    val challengeLeaderboard: StateFlow<List<FeedPost>> = _challengeLeaderboard.asStateFlow()
+    val risingCreators: StateFlow<List<CreativeProfile>> = _risingCreators.asStateFlow()
+    val profileViewers: StateFlow<List<ProfileViewerResponse>> = _profileViewers.asStateFlow()
 
     fun setThemeMode(mode: String) {
         val value = if (mode in setOf("system", "light", "dark")) mode else "system"
@@ -185,6 +196,25 @@ class KolabRepository(
     suspend fun resendLoginOtp(challengeId: String): Result<String?> = withContext(Dispatchers.IO) {
         when (val r = safeCall { api.resendLoginOtp(ResendLoginOtpRequest(challengeId)) }) {
             is ApiResult.Success -> Result.success(r.data.devCode)
+            is ApiResult.Error -> Result.failure(Exception(r.message))
+            is ApiResult.Exception -> Result.failure(r.throwable)
+        }
+    }
+
+    /** Update marketplace discovery preferences for the signed-in user. */
+    suspend fun setDiscoveryPrefs(
+        availableForCollab: Boolean? = null,
+        showProfileViews: Boolean? = null
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        when (val r = safeCall {
+            api.updateProfile(
+                UpdateProfileRequest(
+                    availableForCollab = availableForCollab,
+                    showProfileViews = showProfileViews
+                )
+            )
+        }) {
+            is ApiResult.Success -> Result.success(Unit)
             is ApiResult.Error -> Result.failure(Exception(r.message))
             is ApiResult.Exception -> Result.failure(r.throwable)
         }
@@ -293,7 +323,32 @@ class KolabRepository(
             if (tokenManager.isLoggedIn()) {
                 launch { loadDeals() }
                 launch { loadPortfolio() }
+                launch { loadProfileViewers() }
             }
+            launch { loadDiscovery() }
+        }
+    }
+
+    private suspend fun loadDiscovery() {
+        when (val r = safeCall { api.currentChallenge() }) {
+            is ApiResult.Success -> _currentChallenge.value = r.data
+            else -> {}
+        }
+        when (val r = safeCall { api.challengeLeaderboard(limit = 10) }) {
+            is ApiResult.Success -> _challengeLeaderboard.value = r.data.data.map { it.toFeedPost() }
+            else -> {}
+        }
+        val city = _currentLocation.value.split(',')[0].trim()
+        when (val r = safeCall { api.risingCreators(city = city, take = 12) }) {
+            is ApiResult.Success -> _risingCreators.value = r.data.map { it.toCreative() }
+            else -> {}
+        }
+    }
+
+    private suspend fun loadProfileViewers() {
+        when (val r = safeCall { api.profileViewers() }) {
+            is ApiResult.Success -> _profileViewers.value = r.data.viewers
+            else -> {}
         }
     }
 
@@ -974,7 +1029,9 @@ class KolabRepository(
         imageUrl = avatar.orEmpty(),
         followers = formatAbbrev(followersCount),
         bio = bio?.takeIf { it.isNotBlank() } ?: "",
-        collabsCount = postsCount
+        collabsCount = postsCount,
+        availableForCollab = availableForCollab,
+        availabilityStatus = if (availableForCollab) "Open to collab" else "Booked"
     )
 
     private fun PostResponse.toFeedPost() = FeedPost(

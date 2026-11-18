@@ -38,7 +38,8 @@ data class CreativeProfile(
     val nextAvailableDate: String = "Oct 15",
     val startingRateHourly: String = "Starting at R2,500/hr",
     val portfolioImages: List<String> = emptyList(),
-    val isFollowing: Boolean = false
+    val isFollowing: Boolean = false,
+    val availableForCollab: Boolean = false
 )
 
 data class Measurements(

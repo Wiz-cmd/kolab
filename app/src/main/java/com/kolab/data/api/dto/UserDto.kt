@@ -16,7 +16,10 @@ data class UserResponse(
     @SerializedName("followersCount") val followersCount: Int = 0,
     @SerializedName("followingCount") val followingCount: Int = 0,
     @SerializedName("postsCount") val postsCount: Int = 0,
-    @SerializedName("publicKey") val publicKey: String? = null
+    @SerializedName("publicKey") val publicKey: String? = null,
+    @SerializedName("availableForCollab") val availableForCollab: Boolean = false,
+    @SerializedName("availableUntil") val availableUntil: String? = null,
+    @SerializedName("showProfileViews") val showProfileViews: Boolean = true
 )
 
 data class UpdateProfileRequest(
@@ -24,7 +27,10 @@ data class UpdateProfileRequest(
     val bio: String? = null,
     val location: String? = null,
     @SerializedName("avatarUrl") val avatar: String? = null,
-    @SerializedName("publicKey") val publicKey: String? = null
+    @SerializedName("publicKey") val publicKey: String? = null,
+    @SerializedName("availableForCollab") val availableForCollab: Boolean? = null,
+    @SerializedName("availableUntil") val availableUntil: String? = null,
+    @SerializedName("showProfileViews") val showProfileViews: Boolean? = null
 )
 
 data class PortfolioItemRequest(

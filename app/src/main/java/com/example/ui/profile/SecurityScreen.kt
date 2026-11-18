@@ -24,6 +24,8 @@ import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Handshake
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Pin
 import androidx.compose.material.icons.filled.PhonelinkLock
@@ -92,6 +94,8 @@ fun SecurityScreen(
     var loginOtpEnabled by remember { mutableStateOf(false) }
     var otpChannel by remember { mutableStateOf("EMAIL") }
     var otpPhone by remember { mutableStateOf("") }
+    var availableForCollab by remember { mutableStateOf(true) }
+    var showProfileViews by remember { mutableStateOf(true) }
 
     Column(
         modifier = Modifier
@@ -357,6 +361,48 @@ fun SecurityScreen(
                         else -> "system"
                     }
                     viewModel.setThemeMode(next)
+                }
+            )
+
+            SecurityRow(
+                icon = { Icon(Icons.Default.Handshake, null, tint = PureWhite, modifier = Modifier.size(20.dp)) },
+                title = "Open to collaborate",
+                subtitle = "Show brands you're available for work",
+                trailing = {
+                    Switch(
+                        checked = availableForCollab,
+                        onCheckedChange = {
+                            availableForCollab = it
+                            viewModel.setDiscoveryPrefs(available = it)
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = PureBlack,
+                            checkedTrackColor = PureWhite,
+                            uncheckedThumbColor = TextPrimary,
+                            uncheckedTrackColor = SurfaceContainerHigh
+                        )
+                    )
+                }
+            )
+
+            SecurityRow(
+                icon = { Icon(Icons.Default.Visibility, null, tint = PureWhite, modifier = Modifier.size(20.dp)) },
+                title = "Profile views",
+                subtitle = "Let others see who viewed your profile",
+                trailing = {
+                    Switch(
+                        checked = showProfileViews,
+                        onCheckedChange = {
+                            showProfileViews = it
+                            viewModel.setDiscoveryPrefs(showViews = it)
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = PureBlack,
+                            checkedTrackColor = PureWhite,
+                            uncheckedThumbColor = TextPrimary,
+                            uncheckedTrackColor = SurfaceContainerHigh
+                        )
+                    )
                 }
             )
 

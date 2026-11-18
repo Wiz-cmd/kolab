@@ -193,6 +193,10 @@ class KolabViewModel(
     val currentLocation: StateFlow<String> = repository.currentLocation
     val dataError: StateFlow<String?> = repository.dataError
     val themeMode: StateFlow<String> = repository.themeMode
+    val currentChallenge = repository.currentChallenge
+    val challengeLeaderboard = repository.challengeLeaderboard
+    val risingCreators = repository.risingCreators
+    val profileViewers = repository.profileViewers
 
     // Loading state for the shimmer skeletons
     val feedLoading: StateFlow<Boolean> = repository.feedLoading
@@ -943,6 +947,14 @@ class KolabViewModel(
         // Refresh the feed so it immediately reflects the new local area.
         viewModelScope.launch { repository.loadFeed(_feedMode.value) }
         showNotification("Showing Frames near $loc")
+    }
+
+    fun setDiscoveryPrefs(available: Boolean? = null, showViews: Boolean? = null) {
+        viewModelScope.launch {
+            repository.setDiscoveryPrefs(available, showViews)
+                .onSuccess { showNotification("Preferences saved") }
+                .onFailure { showNotification(it.message ?: "Couldn't save preferences") }
+        }
     }
 
     fun setThemeMode(mode: String) {

@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.SubcomposeAsyncImage
 import com.example.data.AppGraph
+import com.example.data.CreativeProfile
 import com.example.data.FeedMode
 import com.example.data.FeedPost
 import com.example.ui.KolabViewModel
@@ -76,6 +77,7 @@ import com.example.ui.theme.PureWhite
 import com.example.ui.theme.SurfaceContainerHigh
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.TrendGreen
 
 @Composable
 fun HomeScreen(viewModel: KolabViewModel) {
@@ -84,6 +86,9 @@ fun HomeScreen(viewModel: KolabViewModel) {
     val currentLocation by viewModel.currentLocation.collectAsState()
     val feedMode by viewModel.feedMode.collectAsState()
     val editingPost by viewModel.editingPost.collectAsState()
+    val challenge by viewModel.currentChallenge.collectAsState()
+    val challengeLeaders by viewModel.challengeLeaderboard.collectAsState()
+    val risingCreators by viewModel.risingCreators.collectAsState()
     var showLocationPicker by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val myUserId = AppGraph.repository.getCurrentUserId()
@@ -116,6 +121,28 @@ fun HomeScreen(viewModel: KolabViewModel) {
                         onHotspots = { viewModel.selectTab(NavigationTab.PLACES) },
                         onDeals = { viewModel.selectTab(NavigationTab.PROFILE) }
                     )
+                }
+
+                // Weekly creative challenge — the daily reason to post
+                challenge?.let { ch ->
+                    item {
+                        ChallengeCard(
+                            title = ch.title,
+                            brief = ch.brief,
+                            city = ch.city,
+                            leaders = challengeLeaders.take(3).map { it.description }
+                        )
+                    }
+                }
+
+                // Rising creators near the user
+                if (risingCreators.isNotEmpty()) {
+                    item {
+                        RisingCreatorsCard(
+                            creators = risingCreators.take(6),
+                            city = currentLocation.substringBefore(',')
+                        )
+                    }
                 }
 
                 // Frames strip: photos and short videos from the community
@@ -689,6 +716,78 @@ private fun FeedPostCard(
                         shape = RoundedCornerShape(10.dp),
                         fontSize = 11
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChallengeCard(
+    title: String,
+    brief: String,
+    city: String,
+    leaders: List<String>
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(CardBackground)
+            .border(1.dp, DividerBorder, RoundedCornerShape(18.dp))
+            .padding(16.dp)
+    ) {
+        Text("WEEKLY CHALLENGE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PureWhite)
+        Text(brief, fontSize = 12.sp, color = TextSecondary)
+        if (leaders.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            leaders.forEachIndexed { index, caption ->
+                Text(
+                    text = "${index + 1}. ${caption.take(48)}",
+                    fontSize = 11.sp,
+                    color = TextPrimary,
+                    modifier = Modifier.padding(vertical = 2.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RisingCreatorsCard(creators: List<CreativeProfile>, city: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(CardBackground)
+            .border(1.dp, DividerBorder, RoundedCornerShape(18.dp))
+            .padding(16.dp)
+    ) {
+        Text("Rising in $city", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PureWhite)
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            creators.take(4).forEach { creator ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(SurfaceContainerHigh)
+                            .border(1.dp, DividerBorder, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(creator.name.take(1), fontWeight = FontWeight.Bold, color = PureWhite)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(creator.name.take(10), fontSize = 10.sp, color = TextSecondary, maxLines = 1)
+                    if (creator.availableForCollab) {
+                        Text("OPEN", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = TrendGreen)
+                    }
                 }
             }
         }
