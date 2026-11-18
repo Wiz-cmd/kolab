@@ -18,6 +18,9 @@ import com.kolab.data.api.dto.DealResponse
 import com.kolab.data.api.dto.DeviceTokenRequest
 import com.kolab.data.api.dto.HotspotResponse
 import com.kolab.data.api.dto.LoginRequest
+import com.kolab.data.api.dto.LoginOtpSettingsRequest
+import com.kolab.data.api.dto.ResendLoginOtpRequest
+import com.kolab.data.api.dto.VerifyLoginOtpRequest
 import com.kolab.data.api.dto.PasswordResetRequest
 import com.kolab.data.api.dto.PortfolioItemRequest
 import com.kolab.data.api.dto.PostResponse

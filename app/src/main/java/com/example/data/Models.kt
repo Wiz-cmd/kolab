@@ -1,5 +1,7 @@
 package com.example.data
 
+import com.kolab.data.UiUser
+
 /** Result of a password sign-in: either signed in or a one-time-code challenge. */
 sealed class LoginResult {
     data class SignedIn(val user: UiUser) : LoginResult()
