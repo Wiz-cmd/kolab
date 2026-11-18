@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -76,6 +77,7 @@ import com.example.ui.auth.SignUpScreen
 import com.example.ui.auth.SocialAuthScreen
 import com.example.ui.components.CreateCollabSheet
 import com.example.ui.components.KolabBottomBar
+import com.example.ui.components.kolabClickable
 import com.example.ui.discover.DiscoverScreen
 import com.example.ui.home.HomeScreen
 import com.example.ui.places.PlacesScreen
@@ -611,10 +613,20 @@ private fun MainAppScaffold(
                 }
             }
 
+            // Auto-hide the connection banner so it never sits permanently on
+            // the home screen. A failed refresh can show it again if needed.
+            LaunchedEffect(dataError) {
+                if (dataError != null) {
+                    delay(5000)
+                    viewModel.dismissDataError()
+                }
+            }
+
             dataError?.let { message ->
                 Row(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
+                        .zIndex(2f)
                         .statusBarsPadding()
                         .padding(horizontal = 12.dp, vertical = 8.dp)
                         .clip(RoundedCornerShape(12.dp))
@@ -637,8 +649,18 @@ private fun MainAppScaffold(
                         fontWeight = FontWeight.Bold,
                         color = PureWhite,
                         modifier = Modifier
-                            .clickable { viewModel.retryLoad() }
+                            .kolabClickable { viewModel.retryLoad() }
                             .testTag("connection_retry_button")
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Dismiss",
+                        tint = TextPrimary,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .kolabClickable { viewModel.dismissDataError() }
+                            .testTag("connection_dismiss_button")
                     )
                 }
             }

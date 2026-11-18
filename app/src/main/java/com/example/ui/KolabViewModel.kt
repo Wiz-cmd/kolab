@@ -265,6 +265,9 @@ class KolabViewModel(
         viewModelScope.launch { repository.refreshAll() }
     }
 
+    /** Hides the connection banner; the next refresh can show it again if needed. */
+    fun dismissDataError() = repository.dismissDataError()
+
     // Auth actions
     fun setAuthStep(step: AuthStep) {
         _authStep.value = step

@@ -327,6 +327,11 @@ class KolabRepository(
         _dataError.value = "Can't reach Kolab. Check your connection and try again."
     }
 
+    /** Let the UI hide the connection banner without changing loaded data. */
+    fun dismissDataError() {
+        _dataError.value = null
+    }
+
     // ── Actions ─────────────────────────────────────────────────────────
 
     fun toggleLike(postId: String) {
