@@ -13,7 +13,16 @@ interface KolabApi {
     suspend fun register(@Body request: RegisterRequest): Response<TokenPair>
 
     @POST("auth/login")
-    suspend fun login(@Body request: LoginRequest): Response<TokenPair>
+    suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
+
+    @POST("auth/login/verify")
+    suspend fun verifyLoginOtp(@Body request: VerifyLoginOtpRequest): Response<TokenPair>
+
+    @POST("auth/login/resend")
+    suspend fun resendLoginOtp(@Body request: ResendLoginOtpRequest): Response<ResendLoginOtpResponse>
+
+    @POST("auth/login/otp-settings")
+    suspend fun setLoginOtp(@Body request: LoginOtpSettingsRequest): Response<Map<String, Any>>
 
     @POST("auth/refresh")
     suspend fun refreshToken(@Body request: RefreshRequest): Response<TokenPair>

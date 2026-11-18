@@ -21,6 +21,15 @@ val StarGold = Color(0xFFFFD700)
 val TrendGreen = Color(0xFF4EBA6F)
 val ErrorRed = Color(0xFFFF5252)
 
+// Light theme — clean paper surfaces with ink text
+val LightBackground = Color(0xFFF6F7F9)
+val LightSurface = Color(0xFFFFFFFF)
+val LightCard = Color(0xFFFFFFFF)
+val LightSurfaceHigh = Color(0xFFECEEF2)
+val LightDivider = Color(0xFFD8DBE2)
+val LightTextPrimary = Color(0xFF15171A)
+val LightTextSecondary = Color(0xFF5B6070)
+
 // Glass backdrop — deep black with a cold sheen drifting from the top
 val GlassBaseTop = Color(0xFF313131)
 val GlassBaseMid = Color(0xFF151515)

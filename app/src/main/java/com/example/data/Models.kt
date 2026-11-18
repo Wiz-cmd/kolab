@@ -1,5 +1,17 @@
 package com.example.data
 
+/** Result of a password sign-in: either signed in or a one-time-code challenge. */
+sealed class LoginResult {
+    data class SignedIn(val user: UiUser) : LoginResult()
+    data class Challenge(
+        val challengeId: String,
+        val channel: String,
+        val destination: String,
+        val expiresIn: Int,
+        val devCode: String? = null
+    ) : LoginResult()
+}
+
 data class CreativeProfile(
     val id: String,
     val name: String,

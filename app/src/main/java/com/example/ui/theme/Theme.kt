@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,6 +38,27 @@ private val KolabDarkColorScheme = darkColorScheme(
     onError = PureWhite
 )
 
+private val KolabLightColorScheme = lightColorScheme(
+    primary = LightTextPrimary,
+    onPrimary = PureWhite,
+    primaryContainer = LightCard,
+    onPrimaryContainer = LightTextPrimary,
+    secondary = LightTextSecondary,
+    onSecondary = PureWhite,
+    secondaryContainer = LightSurfaceHigh,
+    onSecondaryContainer = LightTextPrimary,
+    background = LightBackground,
+    onBackground = LightTextPrimary,
+    surface = LightSurface,
+    onSurface = LightTextPrimary,
+    surfaceVariant = LightSurfaceHigh,
+    onSurfaceVariant = LightTextSecondary,
+    outline = LightDivider,
+    outlineVariant = LightDivider,
+    error = ErrorRed,
+    onError = PureWhite
+)
+
 /**
  * Frosted-glass backdrop for the whole app: a deep black that brightens toward
  * the top, with a cold highlight drifting from the top-left corner — the
@@ -44,13 +66,16 @@ private val KolabDarkColorScheme = darkColorScheme(
  */
 @Composable
 fun GlassBackground(modifier: Modifier = Modifier) {
+    val light = MaterialTheme.colorScheme.background == LightBackground
+    val base = if (light) {
+        listOf(LightSurface, LightBackground, LightBackground)
+    } else {
+        listOf(GlassBaseTop, GlassBaseMid, GlassBaseBottom)
+    }
+    val sheen = if (light) LightSurfaceHigh.copy(alpha = 0.45f) else GlassSheen
     Box(
         modifier = modifier.background(
-            Brush.linearGradient(
-                colors = listOf(GlassBaseTop, GlassBaseMid, GlassBaseBottom),
-                start = Offset.Zero,
-                end = Offset.Infinite
-            )
+            Brush.linearGradient(colors = base, start = Offset.Zero, end = Offset.Infinite)
         )
     ) {
         Box(
@@ -58,7 +83,7 @@ fun GlassBackground(modifier: Modifier = Modifier) {
                 .fillMaxSize()
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(GlassSheen, Color.Transparent),
+                        colors = listOf(sheen, Color.Transparent),
                         center = Offset(160f, 0f),
                         radius = 1100f
                     )
@@ -88,7 +113,7 @@ fun KolabTheme(
     content: @Composable () -> Unit
 ) {
     MaterialTheme(
-        colorScheme = KolabDarkColorScheme,
+        colorScheme = if (darkTheme) KolabDarkColorScheme else KolabLightColorScheme,
         typography = Typography,
         content = content
     )

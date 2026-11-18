@@ -10,6 +10,7 @@ import com.example.data.CreativeProfile
 import com.example.data.FeedComment
 import com.example.data.FeedMode
 import com.example.data.FeedPost
+import com.example.data.LoginResult
 import com.example.data.Hotspot
 import com.example.data.KolabRepository
 import com.example.data.LeaderboardItem
@@ -37,6 +38,7 @@ data class SearchResults(
 enum class AuthStep {
     LOGIN,
     SIGN_UP,
+    LOGIN_OTP,
     GOOGLE_AUTH_SHEET,
     APPLE_AUTH_SHEET,
     INSTAGRAM_AUTH_SHEET,
@@ -89,6 +91,9 @@ class KolabViewModel(
 
     private val _isLoggingIn = MutableStateFlow(false)
     val isLoggingIn: StateFlow<Boolean> = _isLoggingIn.asStateFlow()
+
+    private val _loginChallenge = MutableStateFlow<LoginResult.Challenge?>(null)
+    val loginChallenge: StateFlow<LoginResult.Challenge?> = _loginChallenge.asStateFlow()
 
     /** Canonical social providers configured on the backend (google/twitter/instagram). */
     private val _availableSocialProviders = MutableStateFlow<Set<String>>(emptySet())
@@ -187,6 +192,7 @@ class KolabViewModel(
     val userPortfolio: StateFlow<List<String>> = repository.userPortfolio
     val currentLocation: StateFlow<String> = repository.currentLocation
     val dataError: StateFlow<String?> = repository.dataError
+    val themeMode: StateFlow<String> = repository.themeMode
 
     // Loading state for the shimmer skeletons
     val feedLoading: StateFlow<Boolean> = repository.feedLoading
@@ -307,13 +313,21 @@ class KolabViewModel(
         viewModelScope.launch {
             try {
                 repository.login(email, pass)
-                    .onSuccess { user ->
-                        _isGuestMode.value = false
-                        _currentUserName.value = user.name.ifBlank { "Kolab Creator" }
-                        _currentUserEmail.value = user.email
-                        _authStep.value = AuthStep.AUTHENTICATED
-                        loadHomeData()
-                        showNotification("Welcome back to Kolab")
+                    .onSuccess { result ->
+                        when (result) {
+                            is LoginResult.Challenge -> {
+                                _loginChallenge.value = result
+                                _authStep.value = AuthStep.LOGIN_OTP
+                            }
+                            is LoginResult.SignedIn -> {
+                                _isGuestMode.value = false
+                                _currentUserName.value = result.user.name.ifBlank { "Kolab Creator" }
+                                _currentUserEmail.value = result.user.email
+                                _authStep.value = AuthStep.AUTHENTICATED
+                                loadHomeData()
+                                showNotification("Welcome back to Kolab")
+                            }
+                        }
                     }
                     .onFailure { e ->
                         val msg = when {
@@ -327,6 +341,50 @@ class KolabViewModel(
                 _isLoggingIn.value = false
             }
         }
+    }
+
+    /** Confirm the emailed/texted code and finish signing in. */
+    fun verifyLoginOtp(code: String) {
+        val challenge = _loginChallenge.value ?: return
+        if (code.length != 6 || !code.all { it.isDigit() }) {
+            showNotification("Enter the 6-digit code we sent you")
+            return
+        }
+        _isLoggingIn.value = true
+        viewModelScope.launch {
+            try {
+                repository.verifyLoginOtp(challenge.challengeId, code)
+                    .onSuccess { user ->
+                        _loginChallenge.value = null
+                        _isGuestMode.value = false
+                        _currentUserName.value = user.name.ifBlank { "Kolab Creator" }
+                        _currentUserEmail.value = user.email
+                        _authStep.value = AuthStep.AUTHENTICATED
+                        loadHomeData()
+                        showNotification("Identity verified — welcome back")
+                    }
+                    .onFailure { showNotification(it.message ?: "That code didn't work. Try again.") }
+            } finally {
+                _isLoggingIn.value = false
+            }
+        }
+    }
+
+    fun resendLoginOtp() {
+        val challenge = _loginChallenge.value ?: return
+        viewModelScope.launch {
+            repository.resendLoginOtp(challenge.challengeId)
+                .onSuccess {
+                    if (it != null) showNotification("New code: $it")
+                    else showNotification("A new code is on its way")
+                }
+                .onFailure { showNotification(it.message ?: "Couldn't resend the code") }
+        }
+    }
+
+    fun cancelLoginOtp() {
+        _loginChallenge.value = null
+        _authStep.value = AuthStep.LOGIN
     }
 
     fun signUp(name: String, email: String, pass: String) {
@@ -388,6 +446,24 @@ class KolabViewModel(
                     showNotification(it.message ?: "Unable to complete $provider sign-in")
                     _authStep.value = AuthStep.LOGIN
                 }
+        }
+    }
+
+    fun setLoginOtp(
+        enabled: Boolean,
+        channel: String,
+        phone: String?,
+        onResult: (Result<Unit>) -> Unit
+    ) {
+        viewModelScope.launch {
+            val result = repository.setLoginOtp(enabled, channel, phone)
+            result.onSuccess {
+                showNotification(
+                    if (enabled) "Login verification enabled" else "Login verification disabled"
+                )
+            }
+            result.onFailure { showNotification(it.message ?: "Couldn't update login verification") }
+            onResult(result)
         }
     }
 
@@ -867,6 +943,17 @@ class KolabViewModel(
         // Refresh the feed so it immediately reflects the new local area.
         viewModelScope.launch { repository.loadFeed(_feedMode.value) }
         showNotification("Showing Frames near $loc")
+    }
+
+    fun setThemeMode(mode: String) {
+        repository.setThemeMode(mode)
+        showNotification(
+            when (mode) {
+                "light" -> "Light theme enabled"
+                "dark" -> "Dark theme enabled"
+                else -> "Following system theme"
+            }
+        )
     }
 
     fun showNotification(msg: String) {

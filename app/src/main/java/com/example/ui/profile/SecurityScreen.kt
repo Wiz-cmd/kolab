@@ -22,6 +22,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Pin
 import androidx.compose.material.icons.filled.PhonelinkLock
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.AlertDialog
@@ -55,6 +59,7 @@ import androidx.fragment.app.FragmentActivity
 import com.example.data.security.AppLockManager
 import com.example.data.security.BiometricAuth
 import com.example.ui.KolabViewModel
+import com.example.ui.auth.PinSetupOverlay
 import com.example.ui.theme.CardBackground
 import com.example.ui.theme.DividerBorder
 import com.example.ui.theme.PureBlack
@@ -82,6 +87,11 @@ fun SecurityScreen(
 
     val appLockManager = remember { AppLockManager(context) }
     var appLockEnabled by remember { mutableStateOf(appLockManager.isEnabled()) }
+    var hasPin by remember { mutableStateOf(appLockManager.hasPin()) }
+    var showPinSetup by remember { mutableStateOf(false) }
+    var loginOtpEnabled by remember { mutableStateOf(false) }
+    var otpChannel by remember { mutableStateOf("EMAIL") }
+    var otpPhone by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -248,6 +258,128 @@ fun SecurityScreen(
                 }
             )
 
+            // Login verification (one-time code after password)
+            SecurityRow(
+                icon = { Icon(Icons.Default.Email, null, tint = PureWhite, modifier = Modifier.size(20.dp)) },
+                title = "Login verification",
+                subtitle = if (loginOtpEnabled) {
+                    "A one-time code is required after your password (${otpChannel.lowercase()})"
+                } else {
+                    "Send a one-time code to confirm it's really you"
+                },
+                trailing = {
+                    Switch(
+                        checked = loginOtpEnabled,
+                        onCheckedChange = { enabled ->
+                            loginOtpEnabled = enabled
+                            viewModel.setLoginOtp(enabled, otpChannel, otpPhone.ifBlank { null }) {}
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = PureBlack,
+                            checkedTrackColor = PureWhite,
+                            uncheckedThumbColor = TextPrimary,
+                            uncheckedTrackColor = SurfaceContainerHigh
+                        ),
+                        modifier = Modifier.testTag("login_otp_toggle")
+                    )
+                }
+            )
+
+            if (loginOtpEnabled) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+                ) {
+                    Text("Send code to", fontSize = 12.sp, color = TextMuted)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("EMAIL", "SMS").forEach { channel ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (otpChannel == channel) PureWhite else SurfaceContainerHigh)
+                                    .clickable {
+                                        otpChannel = channel
+                                        viewModel.setLoginOtp(true, channel, otpPhone.ifBlank { null }) {}
+                                    }
+                                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    channel,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (otpChannel == channel) PureBlack else TextPrimary
+                                )
+                            }
+                        }
+                    }
+                    if (otpChannel == "SMS") {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        OutlinedTextField(
+                            value = otpPhone,
+                            onValueChange = { otpPhone = it },
+                            label = { Text("Phone number") },
+                            placeholder = { Text("+27 82 123 4567") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PureWhite,
+                                unfocusedBorderColor = DividerBorder
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Save number",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PureWhite,
+                            modifier = Modifier.clickable {
+                                viewModel.setLoginOtp(true, "SMS", otpPhone.ifBlank { null }) {}
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Appearance
+            val themeMode by viewModel.themeMode.collectAsState()
+            SecurityRow(
+                icon = { Icon(Icons.Default.Palette, null, tint = PureWhite, modifier = Modifier.size(20.dp)) },
+                title = "Appearance",
+                subtitle = when (themeMode) {
+                    "light" -> "Light theme"
+                    "dark" -> "Dark theme"
+                    else -> "Follow system theme"
+                },
+                onClick = {
+                    val next = when (themeMode) {
+                        "system" -> "light"
+                        "light" -> "dark"
+                        else -> "system"
+                    }
+                    viewModel.setThemeMode(next)
+                }
+            )
+
+            // Extra local PIN
+            SecurityRow(
+                icon = { Icon(Icons.Default.Pin, null, tint = PureWhite, modifier = Modifier.size(20.dp)) },
+                title = "App PIN",
+                subtitle = if (hasPin) "Change or remove your extra unlock PIN" else "Add a 6-digit PIN for extra protection",
+                onClick = { showPinSetup = true }
+            )
+            if (hasPin) {
+                SecurityRow(
+                    icon = { Icon(Icons.Default.Delete, null, tint = PureWhite, modifier = Modifier.size(20.dp)) },
+                    title = "Remove app PIN",
+                    subtitle = "Unlock with biometrics only",
+                    onClick = {
+                        appLockManager.clearPin()
+                        hasPin = false
+                        viewModel.showNotification("App PIN removed")
+                    }
+                )
+            }
+
             // E2EE status
             SecurityRow(
                 icon = { Icon(Icons.Default.Lock, null, tint = PureWhite, modifier = Modifier.size(20.dp)) },
@@ -280,6 +412,18 @@ fun SecurityScreen(
                     }
                 }
             }
+        )
+    }
+
+    if (showPinSetup) {
+        PinSetupOverlay(
+            onComplete = { pin ->
+                appLockManager.setPin(pin)
+                hasPin = true
+                showPinSetup = false
+                viewModel.showNotification("App PIN saved")
+            },
+            onSkip = { showPinSetup = false }
         )
     }
 

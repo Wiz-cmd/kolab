@@ -24,6 +24,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -72,6 +73,7 @@ import com.example.ui.AuthStep
 import com.example.ui.KolabViewModel
 import com.example.ui.NavigationTab
 import com.example.ui.auth.AccountCreatedScreen
+import com.example.ui.auth.LoginOtpScreen
 import com.example.ui.auth.LoginScreen
 import com.example.ui.auth.PinLockOverlay
 import com.example.ui.auth.PinSetupOverlay
@@ -129,7 +131,13 @@ class MainActivity : FragmentActivity() {
         parseSocialIntent(intent)?.let { socialCallbackFlow.value = it }
         val initialDealId = intent.getStringExtra("dealId")
         setContent {
-            KolabTheme {
+            val themeMode by AppGraph.repository.themeMode.collectAsState()
+            val darkTheme = when (themeMode) {
+                "light" -> false
+                "dark" -> true
+                else -> isSystemInDarkTheme()
+            }
+            KolabTheme(darkTheme = darkTheme) {
                 KolabApp(
                     initialDealId = initialDealId,
                     socialCallback = socialCallback.collectAsState().value,
@@ -289,6 +297,9 @@ fun KolabApp(
             when (step) {
                 AuthStep.LOGIN -> {
                     LoginScreen(viewModel = viewModel)
+                }
+                AuthStep.LOGIN_OTP -> {
+                    LoginOtpScreen(viewModel = viewModel)
                 }
                 AuthStep.SIGN_UP -> {
                     BackHandler { viewModel.setAuthStep(AuthStep.LOGIN) }

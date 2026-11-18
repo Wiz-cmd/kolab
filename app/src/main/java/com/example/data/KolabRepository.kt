@@ -75,6 +75,10 @@ class KolabRepository(
     private val _userPortfolio = MutableStateFlow<List<String>>(emptyList())
     private val _currentLocation = MutableStateFlow(DEFAULT_LOCATION)
     private val _dataError = MutableStateFlow<String?>(null)
+    private val _themeMode = MutableStateFlow(
+        context.getSharedPreferences("kolab_prefs", Context.MODE_PRIVATE)
+            .getString(KEY_THEME_MODE, "system") ?: "system"
+    )
 
     val creatives: StateFlow<List<CreativeProfile>> = _creatives.asStateFlow()
     val feedPosts: StateFlow<List<FeedPost>> = _feedPosts.asStateFlow()
@@ -85,6 +89,14 @@ class KolabRepository(
     val userPortfolio: StateFlow<List<String>> = _userPortfolio.asStateFlow()
     val currentLocation: StateFlow<String> = _currentLocation.asStateFlow()
     val dataError: StateFlow<String?> = _dataError.asStateFlow()
+    val themeMode: StateFlow<String> = _themeMode.asStateFlow()
+
+    fun setThemeMode(mode: String) {
+        val value = if (mode in setOf("system", "light", "dark")) mode else "system"
+        context.getSharedPreferences("kolab_prefs", Context.MODE_PRIVATE)
+            .edit().putString(KEY_THEME_MODE, value).apply()
+        _themeMode.value = value
+    }
 
     // ── Guest session ───────────────────────────────────────────────────
     // Guests browse the live public API without tokens. Anything protected
@@ -120,12 +132,66 @@ class KolabRepository(
 
     fun getCurrentUserId(): String = tokenManager.getUserId() ?: ""
 
-    suspend fun login(email: String, password: String): Result<UiUser> = withContext(Dispatchers.IO) {
+    suspend fun login(email: String, password: String): Result<LoginResult> = withContext(Dispatchers.IO) {
         when (val r = safeCall { api.login(LoginRequest(email.trim(), password)) }) {
+            is ApiResult.Success -> {
+                val body = r.data
+                if (body.challenge) {
+                    val id = body.challengeId
+                    if (id.isNullOrBlank()) {
+                        Result.failure(Exception("Login verification could not be started. Try again."))
+                    } else {
+                        Result.success(
+                            LoginResult.Challenge(
+                                challengeId = id,
+                                channel = body.channel ?: "email",
+                                destination = body.destination ?: "your account",
+                                expiresIn = body.expiresIn,
+                                devCode = body.devCode
+                            )
+                        )
+                    }
+                } else {
+                    val access = body.accessToken
+                    val refresh = body.refreshToken
+                    if (access.isNullOrBlank() || refresh.isNullOrBlank()) {
+                        Result.failure(Exception("Sign-in did not return valid tokens."))
+                    } else {
+                        tokenManager.saveTokens(access, refresh)
+                        getMe().map { LoginResult.SignedIn(it) }
+                    }
+                }
+            }
+            is ApiResult.Error -> Result.failure(Exception(r.message))
+            is ApiResult.Exception -> Result.failure(r.throwable)
+        }
+    }
+
+    /** Complete a password + OTP sign-in. */
+    suspend fun verifyLoginOtp(challengeId: String, code: String): Result<UiUser> = withContext(Dispatchers.IO) {
+        when (val r = safeCall { api.verifyLoginOtp(VerifyLoginOtpRequest(challengeId, code)) }) {
             is ApiResult.Success -> {
                 tokenManager.saveTokens(r.data.accessToken, r.data.refreshToken)
                 getMe()
             }
+            is ApiResult.Error -> Result.failure(Exception(r.message))
+            is ApiResult.Exception -> Result.failure(r.throwable)
+        }
+    }
+
+    suspend fun resendLoginOtp(challengeId: String): Result<String?> = withContext(Dispatchers.IO) {
+        when (val r = safeCall { api.resendLoginOtp(ResendLoginOtpRequest(challengeId)) }) {
+            is ApiResult.Success -> Result.success(r.data.devCode)
+            is ApiResult.Error -> Result.failure(Exception(r.message))
+            is ApiResult.Exception -> Result.failure(r.throwable)
+        }
+    }
+
+    suspend fun setLoginOtp(enabled: Boolean, channel: String, phone: String?): Result<Unit> = withContext(Dispatchers.IO) {
+        when (val r = safeCall {
+            api.setLoginOtp(LoginOtpSettingsRequest(enabled, channel, phone?.ifBlank { null }))
+        }) {
+            is ApiResult.Success -> Result.success(Unit)
             is ApiResult.Error -> Result.failure(Exception(r.message))
             is ApiResult.Exception -> Result.failure(r.throwable)
         }
@@ -1019,6 +1085,7 @@ class KolabRepository(
 
     companion object {
         private const val DEFAULT_LOCATION = "Johannesburg, South Africa"
+        private const val KEY_THEME_MODE = "theme_mode"
         private const val SEARCH_SEPARATOR = "\u0001"
         private const val MAX_IMAGE_BYTES = 15 * 1024 * 1024L
         private const val MAX_VIDEO_BYTES = 50 * 1024 * 1024L
