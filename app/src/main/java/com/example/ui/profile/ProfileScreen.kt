@@ -61,6 +61,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import coil.compose.SubcomposeAsyncImage
 import com.example.data.ActiveDeal
 import com.example.ui.AuthStep
@@ -123,9 +124,10 @@ fun ProfileScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(CardBackground)
+                    .background(PureBlack)
+                    .zIndex(10f)
                     .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -246,6 +248,9 @@ fun ProfileScreen(
                 }
             }
 
+            HorizontalDivider(color = DividerBorder, thickness = 1.dp)
+
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             androidx.compose.animation.AnimatedContent(
                 targetState = profileSubTab,
                 transitionSpec = {
@@ -277,6 +282,7 @@ fun ProfileScreen(
                         portfolioLoading = portfolioLoading
                     )
                 }
+            }
             }
         }
 
