@@ -28,6 +28,7 @@ import com.kolab.data.api.dto.SocialProviderResponse
 import com.kolab.data.api.dto.SocialStartResponse
 import com.kolab.data.api.dto.TwoFactorEnableRequest
 import com.kolab.data.api.dto.TwoFactorSetupResponse
+import com.kolab.data.api.dto.UpdatePostRequest
 import com.kolab.data.api.dto.UpdateProfileRequest
 import com.kolab.data.api.dto.UserResponse
 import com.kolab.data.api.dto.WithdrawalRequest
@@ -447,6 +448,43 @@ class KolabRepository(
                 val post = r.data.toFeedPost()
                 _feedPosts.value = listOf(post) + _feedPosts.value
                 Result.success(post)
+            }
+            is ApiResult.Error -> Result.failure(Exception(r.message))
+            is ApiResult.Exception -> Result.failure(r.throwable)
+        }
+    }
+
+    /** Edit an existing Frame's caption and metadata. */
+    suspend fun updatePost(
+        postId: String,
+        description: String,
+        location: String
+    ): Result<FeedPost> = withContext(Dispatchers.IO) {
+        when (val r = safeCall {
+            api.updatePost(
+                postId,
+                UpdatePostRequest(
+                    description = description.trim(),
+                    location = location.trim().ifBlank { null }
+                )
+            )
+        }) {
+            is ApiResult.Success -> {
+                val updated = r.data.toFeedPost()
+                _feedPosts.value = _feedPosts.value.map { if (it.id == postId) updated else it }
+                Result.success(updated)
+            }
+            is ApiResult.Error -> Result.failure(Exception(r.message))
+            is ApiResult.Exception -> Result.failure(r.throwable)
+        }
+    }
+
+    /** Delete one of the signed-in user's Frames. */
+    suspend fun deletePost(postId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        when (val r = safeCall { api.deletePost(postId) }) {
+            is ApiResult.Success -> {
+                _feedPosts.value = _feedPosts.value.filterNot { it.id == postId }
+                Result.success(Unit)
             }
             is ApiResult.Error -> Result.failure(Exception(r.message))
             is ApiResult.Exception -> Result.failure(r.throwable)

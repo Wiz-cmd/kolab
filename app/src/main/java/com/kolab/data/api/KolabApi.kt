@@ -115,6 +115,15 @@ interface KolabApi {
     @POST("posts")
     suspend fun createPost(@Body request: CreatePostRequest): Response<PostResponse>
 
+    @PATCH("posts/{id}")
+    suspend fun updatePost(
+        @Path("id") id: String,
+        @Body request: UpdatePostRequest
+    ): Response<PostResponse>
+
+    @DELETE("posts/{id}")
+    suspend fun deletePost(@Path("id") id: String): Response<Unit>
+
     @POST("posts/{id}/like")
     suspend fun toggleLike(@Path("id") id: String): Response<LikeResponse>
 

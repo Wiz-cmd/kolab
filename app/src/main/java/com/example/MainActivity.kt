@@ -73,6 +73,8 @@ import com.example.ui.KolabViewModel
 import com.example.ui.NavigationTab
 import com.example.ui.auth.AccountCreatedScreen
 import com.example.ui.auth.LoginScreen
+import com.example.ui.auth.PinLockOverlay
+import com.example.ui.auth.PinSetupOverlay
 import com.example.ui.auth.SignUpScreen
 import com.example.ui.auth.SocialAuthScreen
 import com.example.ui.components.CreateCollabSheet
@@ -121,7 +123,7 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         appLockManager = AppLockManager(this)
-        if (appLockManager?.isEnabled() == true) {
+        if (appLockManager?.isLockEnabled() == true) {
             appLockFlow.value = true
         }
         parseSocialIntent(intent)?.let { socialCallbackFlow.value = it }
@@ -132,7 +134,14 @@ class MainActivity : FragmentActivity() {
                     initialDealId = initialDealId,
                     socialCallback = socialCallback.collectAsState().value,
                     appLocked = appLock.collectAsState().value,
-                    onRequestUnlock = { promptForUnlock() }
+                    onRequestUnlock = { promptForUnlock() },
+                    hasPin = { appLockManager?.hasPin() ?: false },
+                    onPinCreated = { pin ->
+                        appLockManager?.setPin(pin)
+                        appLockFlow.value = false
+                    },
+                    onVerifyPin = { pin -> appLockManager?.verifyPin(pin) ?: false },
+                    onPinUnlocked = { appLockFlow.value = false }
                 )
             }
         }
@@ -140,15 +149,16 @@ class MainActivity : FragmentActivity() {
 
     override fun onStart() {
         super.onStart()
-        if (appLockFlow.value) {
-            // Let the UI settle before showing the OS prompt.
+        // When a PIN is set, the PIN gate is already visible — don't stack the
+        // OS biometric prompt on top of it. Biometric-only users get the prompt.
+        if (appLockFlow.value && appLockManager?.hasPin() != true) {
             Handler(Looper.getMainLooper()).postDelayed({ promptForUnlock() }, 250)
         }
     }
 
     override fun onStop() {
         super.onStop()
-        if (appLockManager?.isEnabled() == true) {
+        if (appLockManager?.isLockEnabled() == true) {
             appLockFlow.value = true
         }
     }
@@ -195,8 +205,21 @@ fun KolabApp(
     initialDealId: String? = null,
     socialCallback: SocialCallback? = null,
     appLocked: Boolean = false,
-    onRequestUnlock: () -> Unit = {}
+    onRequestUnlock: () -> Unit = {},
+    hasPin: () -> Boolean = { false },
+    onPinCreated: (String) -> Unit = {},
+    onVerifyPin: (String) -> Boolean = { false },
+    onPinUnlocked: () -> Unit = {}
 ) {
+    var showPinSetup by remember { mutableStateOf(false) }
+    LaunchedEffect(authStep) {
+        if (authStep == AuthStep.AUTHENTICATED &&
+            AppGraph.repository.isLoggedIn() &&
+            !hasPin()
+        ) {
+            showPinSetup = true
+        }
+    }
     val authStep by viewModel.authStep.collectAsState()
     val currentTab by viewModel.currentTab.collectAsState()
     val showCreateSheet by viewModel.showCreateCollabSheet.collectAsState()
@@ -491,9 +514,24 @@ fun KolabApp(
             }
         }
 
-        // App lock overlay (blocks everything until biometric unlock)
+        // PIN gate shown whenever the locked app is resumed.
         if (appLocked) {
-            AppLockOverlay(onUnlock = onRequestUnlock)
+            PinLockOverlay(
+                onVerify = onVerifyPin,
+                onUnlocked = onPinUnlocked,
+                onBiometric = onRequestUnlock
+            )
+        }
+
+        // First successful sign-in: create the device login PIN.
+        if (showPinSetup) {
+            PinSetupOverlay(
+                onComplete = { pin ->
+                    onPinCreated(pin)
+                    showPinSetup = false
+                },
+                onSkip = { showPinSetup = false }
+            )
         }
     }
 }

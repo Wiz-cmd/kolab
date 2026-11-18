@@ -21,6 +21,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Handshake
@@ -31,6 +33,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -50,7 +53,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import coil.compose.SubcomposeAsyncImage
+import com.example.data.AppGraph
 import com.example.data.FeedMode
 import com.example.data.FeedPost
 import com.example.ui.KolabViewModel
@@ -78,8 +83,10 @@ fun HomeScreen(viewModel: KolabViewModel) {
     val feedLoading by viewModel.feedLoading.collectAsState()
     val currentLocation by viewModel.currentLocation.collectAsState()
     val feedMode by viewModel.feedMode.collectAsState()
+    val editingPost by viewModel.editingPost.collectAsState()
     var showLocationPicker by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val myUserId = AppGraph.repository.getCurrentUserId()
     val frames = remember(feedPosts) { feedPosts.filter { it.hasMedia } }
 
     Box(
@@ -164,11 +171,14 @@ fun HomeScreen(viewModel: KolabViewModel) {
                     items(feedPosts, key = { it.id }) { post ->
                         FeedPostCard(
                             post = post,
+                            isMine = myUserId.isNotBlank() && post.authorId == myUserId,
                             onLike = { viewModel.toggleLike(post.id) },
                             onCollab = { viewModel.selectTab(NavigationTab.DISCOVER) },
                             onComment = { viewModel.openComments(post) },
                             onShare = { shareFrame(context, post) },
-                            onOpenFrame = { viewModel.openFramesViewer(post.id) }
+                            onOpenFrame = { viewModel.openFramesViewer(post.id) },
+                            onEdit = { viewModel.openEditPost(post) },
+                            onDelete = { viewModel.deleteOwnPost(post) }
                         )
                     }
                 }
@@ -230,6 +240,14 @@ fun HomeScreen(viewModel: KolabViewModel) {
                 currentLocation = currentLocation,
                 onLocationSelected = { viewModel.switchLocation(it) },
                 onDismiss = { showLocationPicker = false }
+            )
+        }
+
+        editingPost?.let { post ->
+            EditFrameDialog(
+                post = post,
+                onDismiss = { viewModel.closeEditPost() },
+                onSave = { caption, place -> viewModel.saveEditedPost(caption, place) }
             )
         }
     }
@@ -379,11 +397,14 @@ private fun BentoCard(
 @Composable
 private fun FeedPostCard(
     post: FeedPost,
+    isMine: Boolean,
     onLike: () -> Unit,
     onCollab: () -> Unit,
     onComment: () -> Unit,
     onShare: () -> Unit,
-    onOpenFrame: () -> Unit
+    onOpenFrame: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -455,6 +476,32 @@ private fun FeedPostCard(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = PureWhite
+                        )
+                    }
+                }
+
+                if (isMine) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Frame",
+                            tint = TextSecondary,
+                            modifier = Modifier
+                                .size(18.dp)
+                                .kolabClickable(onClick = onEdit)
+                                .testTag("edit_post_${post.id}")
+                        )
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete Frame",
+                            tint = TextSecondary,
+                            modifier = Modifier
+                                .size(18.dp)
+                                .kolabClickable(onClick = onDelete)
+                                .testTag("delete_post_${post.id}")
                         )
                     }
                 }
@@ -639,6 +686,74 @@ private fun FeedPostCard(
                         fontSize = 11
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditFrameDialog(
+    post: FeedPost,
+    onDismiss: () -> Unit,
+    onSave: (String, String) -> Unit
+) {
+    var caption by remember(post.id) { mutableStateOf(post.description) }
+    var place by remember(post.id) { mutableStateOf(post.location) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(CardBackground)
+                .border(1.dp, DividerBorder, RoundedCornerShape(20.dp))
+                .padding(20.dp)
+        ) {
+            Text(
+                text = "Edit Frame",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = PureWhite
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = caption,
+                onValueChange = { if (it.length <= 4000) caption = it },
+                label = { Text("Caption") },
+                modifier = Modifier.fillMaxWidth(),
+                maxLines = 5
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedTextField(
+                value = place,
+                onValueChange = { if (it.length <= 200) place = it },
+                label = { Text("Location") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Cancel",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextSecondary,
+                    modifier = Modifier.kolabClickable(onClick = onDismiss)
+                )
+                Spacer(modifier = Modifier.width(20.dp))
+                Text(
+                    text = "Save",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PureWhite,
+                    modifier = Modifier.kolabClickable {
+                        if (caption.isNotBlank()) onSave(caption, place)
+                    }
+                )
             }
         }
     }

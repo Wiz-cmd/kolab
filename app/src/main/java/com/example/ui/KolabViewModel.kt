@@ -172,6 +172,9 @@ class KolabViewModel(
     private val _commentsLoading = MutableStateFlow(false)
     val commentsLoading: StateFlow<Boolean> = _commentsLoading.asStateFlow()
 
+    private val _editingPost = MutableStateFlow<FeedPost?>(null)
+    val editingPost: StateFlow<FeedPost?> = _editingPost.asStateFlow()
+
     private val _commentBusy = MutableStateFlow(false)
     val commentBusy: StateFlow<Boolean> = _commentBusy.asStateFlow()
 
@@ -693,6 +696,49 @@ class KolabViewModel(
             } finally {
                 _commentBusy.value = false
             }
+        }
+    }
+
+    // ── Manage your own Frames ─────────────────────────────────────────
+
+    private fun ownsPost(post: FeedPost): Boolean =
+        post.authorId.isNotBlank() && post.authorId == repository.getCurrentUserId()
+
+    fun openEditPost(post: FeedPost) {
+        if (!requireAccount("edit your Frames")) return
+        if (!ownsPost(post)) {
+            showNotification("You can only edit your own Frames")
+            return
+        }
+        _editingPost.value = post
+    }
+
+    fun closeEditPost() {
+        _editingPost.value = null
+    }
+
+    fun saveEditedPost(description: String, location: String) {
+        val post = _editingPost.value ?: return
+        viewModelScope.launch {
+            repository.updatePost(post.id, description, location)
+                .onSuccess {
+                    showNotification("Frame updated")
+                    _editingPost.value = null
+                }
+                .onFailure { showNotification(it.message ?: "Could not update that Frame") }
+        }
+    }
+
+    fun deleteOwnPost(post: FeedPost) {
+        if (!requireAccount("delete your Frames")) return
+        if (!ownsPost(post)) {
+            showNotification("You can only delete your own Frames")
+            return
+        }
+        viewModelScope.launch {
+            repository.deletePost(post.id)
+                .onSuccess { showNotification("Frame deleted") }
+                .onFailure { showNotification(it.message ?: "Could not delete that Frame") }
         }
     }
 
