@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -132,7 +131,7 @@ private fun PinKeypad(onDigit: (String) -> Unit, onDelete: () -> Unit) {
                                 .clickable(onClick = onDelete),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.Backspace, contentDescription = "Delete", tint = TextSecondary)
+                            Text("⌫", fontSize = 22.sp, color = TextSecondary)
                         }
                         else -> Box(
                             modifier = Modifier

@@ -211,6 +211,7 @@ fun KolabApp(
     onVerifyPin: (String) -> Boolean = { false },
     onPinUnlocked: () -> Unit = {}
 ) {
+    val authStep by viewModel.authStep.collectAsState()
     var showPinSetup by remember { mutableStateOf(false) }
     LaunchedEffect(authStep) {
         if (authStep == AuthStep.AUTHENTICATED &&
@@ -220,7 +221,6 @@ fun KolabApp(
             showPinSetup = true
         }
     }
-    val authStep by viewModel.authStep.collectAsState()
     val currentTab by viewModel.currentTab.collectAsState()
     val showCreateSheet by viewModel.showCreateCollabSheet.collectAsState()
     val notification by viewModel.notification.collectAsState()
