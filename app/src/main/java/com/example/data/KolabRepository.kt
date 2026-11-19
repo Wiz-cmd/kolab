@@ -11,7 +11,6 @@ import com.kolab.data.api.ApiResult
 import com.kolab.data.api.KolabApi
 import com.kolab.data.api.dto.ChallengeResponse
 import com.kolab.data.api.dto.ChangePasswordRequest
-import com.kolab.data.api.dto.ProfileViewersResponse
 import com.kolab.data.api.dto.ProfileViewerResponse
 import com.kolab.data.api.dto.CommentResponse
 import com.kolab.data.api.dto.CreateCommentRequest
@@ -30,7 +29,6 @@ import com.kolab.data.api.dto.PostResponse
 import com.kolab.data.api.dto.RefreshRequest
 import com.kolab.data.api.dto.RegisterRequest
 import com.kolab.data.api.dto.SocialExchangeRequest
-import com.kolab.data.api.dto.SocialProviderResponse
 import com.kolab.data.api.dto.SocialStartResponse
 import com.kolab.data.api.dto.TwoFactorEnableRequest
 import com.kolab.data.api.dto.TwoFactorSetupResponse
@@ -509,38 +507,6 @@ class KolabRepository(
                         reconciled[i] = reconciled[i].copy(isCheckedIn = true, checkInsCount = r.data.checkInsCount)
                     }
                     _hotspots.value = reconciled
-                }
-                else -> {}
-            }
-        }
-    }
-
-    fun addPost(
-        author: String,
-        location: String,
-        description: String,
-        imageUrl: String,
-        isStudio: Boolean,
-        videoUrl: String = "",
-        filter: String = "clean"
-    ) {
-        if (!tokenManager.isLoggedIn()) return
-        scope.launch {
-            when (val r = safeCall {
-                api.createPost(
-                    CreatePostRequest(
-                        description = description,
-                        imageUrl = imageUrl.takeIf { it.isNotBlank() },
-                        videoUrl = videoUrl.takeIf { it.isNotBlank() },
-                        filter = filter.takeIf { it.isNotBlank() },
-                        location = location.takeIf { it.isNotBlank() },
-                        category = if (isStudio) "studio" else "general"
-                    )
-                )
-            }) {
-                is ApiResult.Success -> {
-                    val post = r.data
-                    _feedPosts.value = listOf(post.toFeedPost()) + _feedPosts.value
                 }
                 else -> {}
             }

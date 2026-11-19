@@ -27,12 +27,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -42,7 +40,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -97,7 +94,6 @@ import com.example.ui.theme.KolabTheme
 import com.example.ui.theme.PureBlack
 import com.example.ui.theme.PureWhite
 import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
 import com.kolab.ui.chat.ChatScreen
 import com.kolab.ui.chat.ChatViewModel
 import com.kolab.ui.chat.ChatViewModelFactory
@@ -543,81 +539,6 @@ fun KolabApp(
                 },
                 onSkip = { showPinSetup = false }
             )
-        }
-    }
-}
-
-@Composable
-private fun AppLockOverlay(onUnlock: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF101010),
-                        Color(0xFF060606)
-                    )
-                )
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(84.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                Color(0x40FFFFFF),
-                                Color(0x12FFFFFF)
-                            )
-                        )
-                    )
-                    .border(1.dp, Color(0x44FFFFFF), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = "Locked",
-                    tint = PureWhite,
-                    modifier = Modifier.size(34.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(28.dp))
-            Text(
-                text = "Kolab is locked",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = PureWhite
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Unlock with your fingerprint or device PIN to continue.",
-                fontSize = 14.sp,
-                color = TextSecondary,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(28.dp))
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(PureWhite)
-                    .clickable(onClick = onUnlock)
-                    .padding(horizontal = 28.dp, vertical = 14.dp)
-                    .testTag("app_lock_unlock_button")
-            ) {
-                Text(
-                    text = "Unlock",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PureBlack
-                )
-            }
         }
     }
 }

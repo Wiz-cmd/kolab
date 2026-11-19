@@ -911,10 +911,13 @@ class KolabViewModel(
 
     fun createNewPost(author: String, location: String, description: String, imageUrl: String, isStudio: Boolean) {
         if (!requireAccount("publish a post")) return
-        repository.addPost(author, location, description, imageUrl, isStudio)
+        viewModelScope.launch {
+            repository.createPost(author, location, description, imageUrl, isStudio)
+                .onSuccess { showNotification("Post published to your feed") }
+                .onFailure { showNotification(it.message ?: "Could not publish that post") }
+        }
         _showCreateCollabSheet.value = false
         _currentTab.value = NavigationTab.HOME
-        showNotification("Post published to Joburg creative feed")
     }
 
     fun addPortfolioImage(url: String) {
