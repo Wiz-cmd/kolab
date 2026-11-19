@@ -40,11 +40,11 @@ private val KolabDarkColorScheme = darkColorScheme(
 
 private val KolabLightColorScheme = lightColorScheme(
     primary = LightTextPrimary,
-    onPrimary = PureWhite,
+    onPrimary = LightSurface,
     primaryContainer = LightCard,
     onPrimaryContainer = LightTextPrimary,
     secondary = LightTextSecondary,
-    onSecondary = PureWhite,
+    onSecondary = LightSurface,
     secondaryContainer = LightSurfaceHigh,
     onSecondaryContainer = LightTextPrimary,
     background = LightBackground,
@@ -56,7 +56,7 @@ private val KolabLightColorScheme = lightColorScheme(
     outline = LightDivider,
     outlineVariant = LightDivider,
     error = ErrorRed,
-    onError = PureWhite
+    onError = LightSurface
 )
 
 /**
@@ -112,6 +112,7 @@ fun KolabTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    KolabThemeState.isLight = !darkTheme
     MaterialTheme(
         colorScheme = if (darkTheme) KolabDarkColorScheme else KolabLightColorScheme,
         typography = Typography,
