@@ -16,6 +16,7 @@ data class UserResponse(
     @SerializedName("followersCount") val followersCount: Int = 0,
     @SerializedName("followingCount") val followingCount: Int = 0,
     @SerializedName("postsCount") val postsCount: Int = 0,
+    @SerializedName("rate") val rate: String? = null,
     @SerializedName("publicKey") val publicKey: String? = null,
     @SerializedName("availableForCollab") val availableForCollab: Boolean = false,
     @SerializedName("availableUntil") val availableUntil: String? = null,

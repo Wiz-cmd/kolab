@@ -13,7 +13,9 @@ data class UiUser(
     val isVerified: Boolean = false,
     val followersCount: Int = 0,
     val followingCount: Int = 0,
-    val postsCount: Int = 0
+    val postsCount: Int = 0,
+    val rate: String = "",
+    val availableForCollab: Boolean = false
 )
 
 data class UiPost(

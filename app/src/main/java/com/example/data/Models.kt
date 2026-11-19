@@ -39,7 +39,9 @@ data class CreativeProfile(
     val startingRateHourly: String = "Starting at R2,500/hr",
     val portfolioImages: List<String> = emptyList(),
     val isFollowing: Boolean = false,
-    val availableForCollab: Boolean = false
+    val availableForCollab: Boolean = false,
+    val isVerified: Boolean = false,
+    val badges: List<String> = emptyList()
 )
 
 data class Measurements(

@@ -11,6 +11,7 @@ import com.example.data.FeedComment
 import com.example.data.FeedMode
 import com.example.data.FeedPost
 import com.example.data.LoginResult
+import com.kolab.data.UiUser
 import com.example.data.Hotspot
 import com.example.data.KolabRepository
 import com.example.data.LeaderboardItem
@@ -85,6 +86,9 @@ class KolabViewModel(
 
     private val _currentUserEmail = MutableStateFlow(repository.getUserEmail())
     val currentUserEmail: StateFlow<String> = _currentUserEmail.asStateFlow()
+
+    private val _currentUser = MutableStateFlow<UiUser?>(null)
+    val currentUser: StateFlow<UiUser?> = _currentUser.asStateFlow()
 
     private val _currentUserName = MutableStateFlow(repository.getUserName())
     val currentUserName: StateFlow<String> = _currentUserName.asStateFlow()
@@ -238,6 +242,7 @@ class KolabViewModel(
             _isGuestMode.value = true
             _currentUserName.value = "Guest"
             _currentUserEmail.value = ""
+            _currentUser.value = null
             _authStep.value = AuthStep.AUTHENTICATED
             loadHomeData()
             return
@@ -249,6 +254,7 @@ class KolabViewModel(
                     _isGuestMode.value = false
                     _currentUserName.value = user.name.ifBlank { "Kolab Creator" }
                     _currentUserEmail.value = user.email
+                    _currentUser.value = user
                     _authStep.value = AuthStep.AUTHENTICATED
                     loadHomeData()
                 }
@@ -293,6 +299,7 @@ class KolabViewModel(
         _isGuestMode.value = true
         _currentUserName.value = "Guest"
         _currentUserEmail.value = ""
+        _currentUser.value = null
         _authStep.value = AuthStep.AUTHENTICATED
         _currentTab.value = NavigationTab.HOME
         loadHomeData()
@@ -327,6 +334,7 @@ class KolabViewModel(
                                 _isGuestMode.value = false
                                 _currentUserName.value = result.user.name.ifBlank { "Kolab Creator" }
                                 _currentUserEmail.value = result.user.email
+                                _currentUser.value = result.user
                                 _authStep.value = AuthStep.AUTHENTICATED
                                 loadHomeData()
                                 showNotification("Welcome back to Kolab")
@@ -363,6 +371,7 @@ class KolabViewModel(
                         _isGuestMode.value = false
                         _currentUserName.value = user.name.ifBlank { "Kolab Creator" }
                         _currentUserEmail.value = user.email
+                    _currentUser.value = user
                         _authStep.value = AuthStep.AUTHENTICATED
                         loadHomeData()
                         showNotification("Identity verified — welcome back")
@@ -405,6 +414,7 @@ class KolabViewModel(
                         _isGuestMode.value = false
                         _currentUserName.value = user.name.ifBlank { name.ifBlank { "Kolab Creator" } }
                         _currentUserEmail.value = user.email
+                    _currentUser.value = user
                         _authStep.value = AuthStep.ACCOUNT_CREATED_SUCCESS
                         loadHomeData()
                     }
@@ -442,6 +452,7 @@ class KolabViewModel(
                     _isGuestMode.value = false
                     _currentUserName.value = user.name.ifBlank { "Kolab Creator" }
                     _currentUserEmail.value = user.email
+                    _currentUser.value = user
                     _authStep.value = AuthStep.AUTHENTICATED
                     loadHomeData()
                     showNotification("Signed in with $provider")
@@ -539,6 +550,7 @@ class KolabViewModel(
                 _isGuestMode.value = false
                 _currentUserName.value = ""
                 _currentUserEmail.value = ""
+            _currentUser.value = null
                 _authStep.value = AuthStep.LOGIN
                 _currentTab.value = NavigationTab.HOME
                 showNotification("Your account has been deleted.")

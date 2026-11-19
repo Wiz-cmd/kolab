@@ -265,7 +265,9 @@ class KolabRepository(
                         isVerified = u.isVerified,
                         followersCount = u.followersCount,
                         followingCount = u.followingCount,
-                        postsCount = u.postsCount
+                        postsCount = u.postsCount,
+                        rate = u.rate.orEmpty(),
+                        availableForCollab = u.availableForCollab
                     )
                 )
             }
@@ -997,7 +999,13 @@ class KolabRepository(
         bio = bio?.takeIf { it.isNotBlank() } ?: "",
         collabsCount = postsCount,
         availableForCollab = availableForCollab,
-        availabilityStatus = if (availableForCollab) "Open to collab" else "Booked"
+        isVerified = isVerified,
+        availabilityStatus = if (availableForCollab) "Open to collab" else "Booked",
+        badges = buildList {
+            if (isVerified) add("VERIFIED")
+            if (availableForCollab) add("OPEN")
+            if (postsCount >= 5) add("ACTIVE")
+        }
     )
 
     private fun PostResponse.toFeedPost() = FeedPost(

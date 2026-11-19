@@ -785,8 +785,13 @@ private fun RisingCreatorsCard(creators: List<CreativeProfile>, city: String) {
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(creator.name.take(10), fontSize = 10.sp, color = TextSecondary, maxLines = 1)
-                    if (creator.availableForCollab) {
-                        Text("OPEN", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = TrendGreen)
+                    if (creator.badges.isNotEmpty()) {
+                        Text(
+                            creator.badges.first(),
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (creator.availableForCollab) TrendGreen else TextSecondary
+                        )
                     }
                 }
             }

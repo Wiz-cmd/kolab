@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil.compose.SubcomposeAsyncImage
 import com.example.data.ActiveDeal
+import com.kolab.data.api.dto.ProfileViewerResponse
 import com.example.ui.AuthStep
 import com.example.ui.KolabViewModel
 import com.example.ui.NavigationTab
@@ -99,7 +100,25 @@ fun ProfileScreen(
     val showWithdrawDialog by viewModel.showWithdrawDialog.collectAsState()
     val userName by viewModel.currentUserName.collectAsState()
     val isGuest by viewModel.isGuestMode.collectAsState()
+    val currentUser by viewModel.currentUser.collectAsState()
+    val profileViewers by viewModel.profileViewers.collectAsState()
     var showSecurity by remember { mutableStateOf(false) }
+
+    val profileStrength = remember(currentUser) {
+        val u = currentUser
+        if (u == null) {
+            0
+        } else {
+            listOf(
+                u.avatar.isNotBlank(),
+                u.bio.isNotBlank(),
+                u.rate.isNotBlank(),
+                u.isVerified,
+                u.postsCount > 0,
+                u.availableForCollab
+            ).count { it } * 100 / 6
+        }
+    }
 
     if (isGuest) {
         GuestProfileScreen(viewModel)
@@ -269,6 +288,8 @@ fun ProfileScreen(
                         activeDeals = activeDeals,
                         portfolio = userPortfolio,
                         portfolioLoading = portfolioLoading,
+                        profileStrength = profileStrength,
+                        profileViewers = profileViewers,
                         onWithdraw = { viewModel.openWithdrawDialog() },
                         onAddPortfolio = { viewModel.openCreateSheet() },
                         onSignOut = { viewModel.signOut() },
@@ -296,12 +317,70 @@ fun ProfileScreen(
     }
 
 @Composable
+private fun ProfileStrengthCard(strength: Int) {
+    val label = when {
+        strength >= 85 -> "Standout profile"
+        strength >= 60 -> "Looking strong"
+        strength >= 35 -> "Almost there"
+        else -> "Build your profile"
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(CardBackground)
+            .border(1.dp, DividerBorder, RoundedCornerShape(18.dp))
+            .padding(16.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Profile strength", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary, modifier = Modifier.weight(1f))
+            Text("$strength%", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TrendGreen)
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        Box(modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(SurfaceContainerHigh)) {
+            Box(modifier = Modifier.fillMaxWidth(strength / 100f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(TrendGreen))
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(label, fontSize = 12.sp, color = TextSecondary)
+    }
+}
+
+@Composable
+private fun ProfileViewersCard(viewers: List<ProfileViewerResponse>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(CardBackground)
+            .border(1.dp, DividerBorder, RoundedCornerShape(18.dp))
+            .padding(16.dp)
+    ) {
+        Text("Who viewed your profile", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PureWhite)
+        Spacer(modifier = Modifier.height(10.dp))
+        viewers.take(5).forEach { viewer ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier.size(30.dp).clip(CircleShape).background(SurfaceContainerHigh),
+                    contentAlignment = Alignment.Center
+                ) { Text(viewer.name.take(1), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PureWhite) }
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(viewer.name.ifBlank { "Kolab member" }, fontSize = 12.sp, color = TextPrimary, modifier = Modifier.weight(1f))
+                Text("${viewer.visits} views", fontSize = 11.sp, color = TextSecondary)
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+        }
+    }
+}
+
+@Composable
 private fun MyStudioView(
     userName: String,
     balance: Double,
     activeDeals: List<ActiveDeal>,
     portfolio: List<String>,
     portfolioLoading: Boolean,
+    profileStrength: Int,
+    profileViewers: List<ProfileViewerResponse>,
     onWithdraw: () -> Unit,
     onAddPortfolio: () -> Unit,
     onSignOut: () -> Unit,
@@ -353,6 +432,16 @@ private fun MyStudioView(
                         color = TextSecondary
                     )
                 }
+            }
+        }
+
+        item {
+            ProfileStrengthCard(strength = profileStrength)
+        }
+
+        if (profileViewers.isNotEmpty()) {
+            item {
+                ProfileViewersCard(viewers = profileViewers)
             }
         }
 
