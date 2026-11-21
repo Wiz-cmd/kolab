@@ -87,11 +87,12 @@ import com.example.ui.frames.FrameCameraScreen
 import com.example.ui.frames.FrameCommentsSheet
 import com.example.ui.frames.FrameComposerScreen
 import com.example.ui.frames.FramesScreen
+import com.example.ui.theme.Accent
 import com.example.ui.theme.DarkSurface
 import com.example.ui.theme.DividerBorder
 import com.example.ui.theme.GlassBackground
 import com.example.ui.theme.KolabTheme
-import com.example.ui.theme.PureBlack
+import com.example.ui.theme.OnAccent
 import com.example.ui.theme.PureWhite
 import com.example.ui.theme.TextPrimary
 import com.kolab.ui.chat.ChatScreen
@@ -451,10 +452,7 @@ fun KolabApp(
                                 .clip(CircleShape)
                                 .background(
                                     Brush.linearGradient(
-                                        colors = listOf(
-                                            Color(0xFFFFFFFF),
-                                            Color(0xFFE0E0E0)
-                                        )
+                                        colors = listOf(Accent, Accent)
                                     )
                                 )
                                 .border(
@@ -469,7 +467,7 @@ fun KolabApp(
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = "Notification",
-                                tint = PureBlack,
+                                tint = OnAccent,
                                 modifier = Modifier.size(16.dp)
                             )
                         }

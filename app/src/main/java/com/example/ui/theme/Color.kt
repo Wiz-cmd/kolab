@@ -38,7 +38,16 @@ val TextPrimary: Color get() = if (KolabThemeState.isLight) Color(0xFF1A1D24) el
 val TextSecondary: Color get() = if (KolabThemeState.isLight) Color(0xFF555B68) else Color(0xFFA0A0A0)
 val TextMuted: Color get() = if (KolabThemeState.isLight) Color(0xFF7A818F) else Color(0xFF6E6E6E)
 
-val StarGold = Color(0xFFFFD700)
+// Kolab Gold — the single brand accent. Based on the gold in the South African
+// flag (#FFB612), adjusted per theme so it stays legible and never vibrates.
+// Dark surfaces get a lighter, luminous gold; light surfaces get a deeper amber
+// that still passes 4.5:1 text contrast and 3:1 UI contrast.
+val Accent: Color get() = if (KolabThemeState.isLight) Color(0xFF9A5600) else Color(0xFFFFC247)
+val OnAccent: Color get() = if (KolabThemeState.isLight) Color(0xFFFFFFFF) else Color(0xFF171000)
+val AccentText: Color get() = if (KolabThemeState.isLight) Color(0xFF8A4B00) else Color(0xFFFFC247)
+val AccentSoft: Color get() = if (KolabThemeState.isLight) Color(0xFFFFF3D6) else Color(0x33FFC247)
+
+val StarGold: Color get() = AccentText
 val TrendGreen = Color(0xFF2E9E5B)
 val ErrorRed = Color(0xFFD93025)
 

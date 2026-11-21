@@ -18,14 +18,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 private val KolabDarkColorScheme = darkColorScheme(
-    primary = PureWhite,
-    onPrimary = PureBlack,
-    primaryContainer = CardBackground,
-    onPrimaryContainer = PureWhite,
+    primary = Color(0xFFFFC247),
+    onPrimary = Color(0xFF171000),
+    primaryContainer = Color(0x33FFC247),
+    onPrimaryContainer = Color(0xFFFFC247),
     secondary = TextPrimary,
     onSecondary = PureBlack,
     secondaryContainer = SurfaceContainerHigh,
     onSecondaryContainer = PureWhite,
+    tertiary = Color(0xFFFFC247),
+    onTertiary = Color(0xFF171000),
     background = PureBlack,
     onBackground = TextPrimary,
     surface = DarkSurface,
@@ -39,14 +41,16 @@ private val KolabDarkColorScheme = darkColorScheme(
 )
 
 private val KolabLightColorScheme = lightColorScheme(
-    primary = LightTextPrimary,
-    onPrimary = LightSurface,
-    primaryContainer = LightCard,
-    onPrimaryContainer = LightTextPrimary,
+    primary = Color(0xFF9A5600),
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFFFF3D6),
+    onPrimaryContainer = Color(0xFF8A4B00),
     secondary = LightTextSecondary,
     onSecondary = LightSurface,
     secondaryContainer = LightSurfaceHigh,
     onSecondaryContainer = LightTextPrimary,
+    tertiary = Color(0xFF8A4B00),
+    onTertiary = Color(0xFFFFFFFF),
     background = LightBackground,
     onBackground = LightTextPrimary,
     surface = LightSurface,

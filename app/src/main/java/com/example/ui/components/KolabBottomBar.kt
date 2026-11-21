@@ -44,7 +44,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.NavigationTab
-import com.example.ui.theme.PureBlack
+import com.example.ui.theme.Accent
+import com.example.ui.theme.AccentText
+import com.example.ui.theme.OnAccent
 import com.example.ui.theme.PureWhite
 import com.example.ui.theme.TextSecondary
 
@@ -173,7 +175,7 @@ private fun CenterCreateNavItem(
                 .background(
                     Brush.linearGradient(
                         colors = if (isSelected) {
-                            listOf(PureWhite, Color(0xFFE0E0E0))
+                            listOf(Accent, Accent)
                         } else {
                             listOf(
                                 Color(0x35FFFFFF),
@@ -185,10 +187,14 @@ private fun CenterCreateNavItem(
                 .border(
                     width = 1.dp,
                     brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color(0x80FFFFFF),
-                            Color(0x30FFFFFF)
-                        )
+                        colors = if (isSelected) {
+                            listOf(Accent, Accent.copy(alpha = 0.5f))
+                        } else {
+                            listOf(
+                                Color(0x80FFFFFF),
+                                Color(0x30FFFFFF)
+                            )
+                        }
                     ),
                     shape = CircleShape
                 ),
@@ -197,7 +203,7 @@ private fun CenterCreateNavItem(
             Icon(
                 imageVector = Icons.Default.Add,
                 contentDescription = "Create",
-                tint = if (isSelected) PureBlack else PureWhite,
+                tint = if (isSelected) OnAccent else PureWhite,
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -215,7 +221,7 @@ private fun BottomNavItem(
     testTag: String
 ) {
     val iconTint by animateColorAsState(
-        targetValue = if (isSelected) PureWhite else TextSecondary,
+        targetValue = if (isSelected) AccentText else TextSecondary,
         animationSpec = tween(250),
         label = "iconTint"
     )

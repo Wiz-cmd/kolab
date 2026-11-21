@@ -70,8 +70,11 @@ import com.example.ui.components.ShimmerBlock
 import com.example.ui.components.kolabClickable
 import com.example.ui.frames.FramesRail
 import com.example.ui.frames.shareFrame
+import com.example.ui.theme.Accent
+import com.example.ui.theme.AccentText
 import com.example.ui.theme.CardBackground
 import com.example.ui.theme.DividerBorder
+import com.example.ui.theme.OnAccent
 import com.example.ui.theme.PureBlack
 import com.example.ui.theme.PureWhite
 import com.example.ui.theme.SurfaceContainerHigh
@@ -252,8 +255,8 @@ fun HomeScreen(viewModel: KolabViewModel) {
         ) {
             FloatingActionButton(
                 onClick = { viewModel.openCreateSheet() },
-                containerColor = PureWhite,
-                contentColor = PureBlack,
+                containerColor = Accent,
+                contentColor = OnAccent,
                 shape = CircleShape,
                 modifier = Modifier.testTag("home_create_fab")
             ) {
@@ -737,7 +740,7 @@ private fun ChallengeCard(
             .border(1.dp, DividerBorder, RoundedCornerShape(18.dp))
             .padding(16.dp)
     ) {
-        Text("WEEKLY CHALLENGE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
+        Text("WEEKLY CHALLENGE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = AccentText)
         Spacer(modifier = Modifier.height(6.dp))
         Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PureWhite)
         Text(brief, fontSize = 12.sp, color = TextSecondary)
@@ -790,7 +793,7 @@ private fun RisingCreatorsCard(creators: List<CreativeProfile>, city: String) {
                             creator.badges.first(),
                             fontSize = 8.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (creator.availableForCollab) TrendGreen else TextSecondary
+                            color = if (creator.availableForCollab) AccentText else TextSecondary
                         )
                     }
                 }

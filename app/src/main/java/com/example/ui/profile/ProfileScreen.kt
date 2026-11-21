@@ -73,6 +73,8 @@ import com.example.ui.components.KolabPortfolioGridSkeleton
 import com.example.ui.components.ShimmerBlock
 import com.example.ui.components.WithdrawDialog
 import com.example.ui.components.kolabClickable
+import com.example.ui.theme.Accent
+import com.example.ui.theme.AccentText
 import com.example.ui.theme.CardBackground
 import com.example.ui.theme.DividerBorder
 import com.example.ui.theme.PureBlack
@@ -334,11 +336,11 @@ private fun ProfileStrengthCard(strength: Int) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Profile strength", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary, modifier = Modifier.weight(1f))
-            Text("$strength%", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TrendGreen)
+            Text("$strength%", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = AccentText)
         }
         Spacer(modifier = Modifier.height(10.dp))
         Box(modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(SurfaceContainerHigh)) {
-            Box(modifier = Modifier.fillMaxWidth(strength / 100f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(TrendGreen))
+            Box(modifier = Modifier.fillMaxWidth(strength / 100f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(Accent))
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text(label, fontSize = 12.sp, color = TextSecondary)

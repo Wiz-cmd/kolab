@@ -25,8 +25,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.PureBlack
-import com.example.ui.theme.PureWhite
+import com.example.ui.theme.Accent
+import com.example.ui.theme.OnAccent
 
 /**
  * The Kolab primary action button, with a built-in in-flight state.
@@ -44,8 +44,8 @@ fun KolabPrimaryButton(
     loading: Boolean = false,
     enabled: Boolean = true,
     icon: ImageVector? = null,
-    containerColor: Color = PureWhite,
-    contentColor: Color = PureBlack,
+    containerColor: Color = Accent,
+    contentColor: Color = OnAccent,
     height: Dp = 48.dp,
     shape: RoundedCornerShape = RoundedCornerShape(12.dp),
     fontSize: Int = 14
