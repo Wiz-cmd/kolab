@@ -72,6 +72,7 @@ import com.example.ui.frames.FramesRail
 import com.example.ui.frames.shareFrame
 import com.example.ui.theme.Accent
 import com.example.ui.theme.AccentBorder
+import com.example.ui.theme.AccentSoft
 import com.example.ui.theme.AccentText
 import com.example.ui.theme.CardBackground
 import com.example.ui.theme.DividerBorder
