@@ -46,6 +46,8 @@ val Accent: Color get() = if (KolabThemeState.isLight) Color(0xFF9A5600) else Co
 val OnAccent: Color get() = if (KolabThemeState.isLight) Color(0xFFFFFFFF) else Color(0xFF171000)
 val AccentText: Color get() = if (KolabThemeState.isLight) Color(0xFF8A4B00) else Color(0xFFFFC247)
 val AccentSoft: Color get() = if (KolabThemeState.isLight) Color(0xFFFFF3D6) else Color(0x33FFC247)
+val AccentBorder: Color get() = if (KolabThemeState.isLight) Color(0xFFE09A00) else Color(0xFFFFC247)
+val AccentGlow: Color get() = if (KolabThemeState.isLight) Color(0x44E09A00) else Color(0x66FFC247)
 
 val StarGold: Color get() = AccentText
 val TrendGreen = Color(0xFF2E9E5B)

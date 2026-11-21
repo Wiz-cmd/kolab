@@ -54,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -74,6 +75,8 @@ import com.example.ui.components.ShimmerBlock
 import com.example.ui.components.WithdrawDialog
 import com.example.ui.components.kolabClickable
 import com.example.ui.theme.Accent
+import com.example.ui.theme.AccentBorder
+import com.example.ui.theme.AccentSoft
 import com.example.ui.theme.AccentText
 import com.example.ui.theme.CardBackground
 import com.example.ui.theme.DividerBorder
@@ -330,8 +333,8 @@ private fun ProfileStrengthCard(strength: Int) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(CardBackground)
-            .border(1.dp, DividerBorder, RoundedCornerShape(18.dp))
+            .background(Brush.linearGradient(listOf(AccentSoft, CardBackground)))
+            .border(1.5.dp, AccentBorder, RoundedCornerShape(18.dp))
             .padding(16.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -410,7 +413,7 @@ private fun MyStudioView(
                         .size(54.dp)
                         .clip(CircleShape)
                         .background(SurfaceContainerHigh)
-                        .border(1.5.dp, DividerBorder, CircleShape),
+                        .border(2.dp, AccentBorder, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

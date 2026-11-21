@@ -44,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -71,16 +72,16 @@ import com.example.ui.components.kolabClickable
 import com.example.ui.frames.FramesRail
 import com.example.ui.frames.shareFrame
 import com.example.ui.theme.Accent
+import com.example.ui.theme.AccentBorder
+import com.example.ui.theme.AccentGlow
 import com.example.ui.theme.AccentText
 import com.example.ui.theme.CardBackground
 import com.example.ui.theme.DividerBorder
 import com.example.ui.theme.OnAccent
-import com.example.ui.theme.PureBlack
 import com.example.ui.theme.PureWhite
 import com.example.ui.theme.SurfaceContainerHigh
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.TrendGreen
 
 @Composable
 fun HomeScreen(viewModel: KolabViewModel) {
@@ -185,7 +186,7 @@ fun HomeScreen(viewModel: KolabViewModel) {
                                 },
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = TextSecondary
+                                color = AccentText
                             )
                         }
 
@@ -258,12 +259,14 @@ fun HomeScreen(viewModel: KolabViewModel) {
                 containerColor = Accent,
                 contentColor = OnAccent,
                 shape = CircleShape,
-                modifier = Modifier.testTag("home_create_fab")
+                modifier = Modifier
+                    .shadow(20.dp, ambientColor = AccentGlow, spotColor = AccentGlow)
+                    .testTag("home_create_fab")
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Create Collab",
-                    tint = PureBlack,
+                    tint = OnAccent,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -307,7 +310,7 @@ private fun FeedModeToggle(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(if (selected) PureWhite else Color.Transparent)
+                    .background(if (selected) Accent else Color.Transparent)
                     .kolabClickable { onSelect(m) }
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center
@@ -316,7 +319,7 @@ private fun FeedModeToggle(
                     text = if (m == FeedMode.FOR_YOU) "For You" else "Following",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (selected) PureBlack else TextPrimary
+                    color = if (selected) OnAccent else TextPrimary
                 )
             }
         }
@@ -614,12 +617,12 @@ private fun FeedPostCard(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(999.dp))
                                 .background(Color.Black.copy(alpha = 0.5f))
-                                .border(1.dp, PureWhite.copy(alpha = 0.25f), RoundedCornerShape(999.dp))
+                                .border(1.dp, AccentBorder, RoundedCornerShape(999.dp))
                                 .padding(horizontal = 8.dp, vertical = 3.dp)
                         ) {
                             Text(
                                 text = "FRAME",
-                                color = PureWhite,
+                                color = AccentText,
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -735,12 +738,18 @@ private fun ChallengeCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(12.dp, ambientColor = AccentGlow, spotColor = AccentGlow)
             .clip(RoundedCornerShape(18.dp))
-            .background(CardBackground)
-            .border(1.dp, DividerBorder, RoundedCornerShape(18.dp))
+            .background(Brush.linearGradient(listOf(AccentSoft, CardBackground)))
+            .border(1.5.dp, AccentBorder, RoundedCornerShape(18.dp))
             .padding(16.dp)
     ) {
-        Text("WEEKLY CHALLENGE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = AccentText)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("WEEKLY CHALLENGE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = AccentText, modifier = Modifier.weight(1f))
+            if (city.isNotBlank() && city != "Anywhere") {
+                Text(city.uppercase(), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = AccentText)
+            }
+        }
         Spacer(modifier = Modifier.height(6.dp))
         Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PureWhite)
         Text(brief, fontSize = 12.sp, color = TextSecondary)
@@ -765,10 +774,14 @@ private fun RisingCreatorsCard(creators: List<CreativeProfile>, city: String) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
             .background(CardBackground)
-            .border(1.dp, DividerBorder, RoundedCornerShape(18.dp))
+            .border(1.5.dp, AccentBorder, RoundedCornerShape(18.dp))
             .padding(16.dp)
     ) {
-        Text("Rising in $city", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PureWhite)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(Accent))
+            Spacer(modifier = Modifier.width(7.dp))
+            Text("Rising in $city", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PureWhite)
+        }
         Spacer(modifier = Modifier.height(12.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),

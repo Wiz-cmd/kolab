@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -26,6 +27,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.Accent
+import com.example.ui.theme.AccentGlow
 import com.example.ui.theme.OnAccent
 
 /**
@@ -66,7 +68,9 @@ fun KolabPrimaryButton(
             disabledContainerColor = containerColor.copy(alpha = 0.55f),
             disabledContentColor = contentColor.copy(alpha = 0.6f)
         ),
-        modifier = modifier.height(height)
+        modifier = modifier
+            .height(height)
+            .shadow(10.dp, ambientColor = AccentGlow, spotColor = AccentGlow)
     ) {
         Box(contentAlignment = Alignment.Center) {
             // Always laid out so the button width never changes while loading.

@@ -28,6 +28,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.theme.Accent
+import com.example.ui.theme.AccentBorder
+import com.example.ui.theme.AccentText
 import com.example.ui.theme.DividerBorder
 import com.example.ui.theme.PureWhite
 import com.example.ui.theme.SurfaceContainerHigh
@@ -58,7 +61,7 @@ fun KolabTopBar(
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
                     .background(SurfaceContainerHigh)
-                    .border(1.dp, DividerBorder, RoundedCornerShape(20.dp))
+                    .border(1.5.dp, AccentBorder, RoundedCornerShape(20.dp))
                     .clickable(onClick = onLocationClick)
                     .padding(horizontal = 12.dp, vertical = 6.dp)
                     .testTag("location_picker_pill")
@@ -67,7 +70,7 @@ fun KolabTopBar(
                     Icon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = "Location",
-                        tint = PureWhite,
+                        tint = AccentText,
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -92,7 +95,7 @@ fun KolabTopBar(
                 text = title,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = PureWhite,
+                color = AccentText,
                 letterSpacing = (-0.5).sp
             )
 
@@ -109,10 +112,19 @@ fun KolabTopBar(
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = "Search",
-                    tint = PureWhite,
+                    tint = AccentText,
                     modifier = Modifier.size(18.dp)
                 )
             }
         }
+
+        // Signature accent line — a thin gold seam under the top bar.
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(2.dp)
+                .background(Accent)
+        )
     }
 }
