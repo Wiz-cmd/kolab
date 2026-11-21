@@ -44,7 +44,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -73,7 +72,6 @@ import com.example.ui.frames.FramesRail
 import com.example.ui.frames.shareFrame
 import com.example.ui.theme.Accent
 import com.example.ui.theme.AccentBorder
-import com.example.ui.theme.AccentGlow
 import com.example.ui.theme.AccentText
 import com.example.ui.theme.CardBackground
 import com.example.ui.theme.DividerBorder
@@ -259,9 +257,7 @@ fun HomeScreen(viewModel: KolabViewModel) {
                 containerColor = Accent,
                 contentColor = OnAccent,
                 shape = CircleShape,
-                modifier = Modifier
-                    .shadow(20.dp, ambientColor = AccentGlow, spotColor = AccentGlow)
-                    .testTag("home_create_fab")
+                modifier = Modifier.testTag("home_create_fab")
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
@@ -738,7 +734,6 @@ private fun ChallengeCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(12.dp, ambientColor = AccentGlow, spotColor = AccentGlow)
             .clip(RoundedCornerShape(18.dp))
             .background(Brush.linearGradient(listOf(AccentSoft, CardBackground)))
             .border(1.5.dp, AccentBorder, RoundedCornerShape(18.dp))
